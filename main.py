@@ -8,6 +8,7 @@ if __name__ == "__main__":
 
     influx = GossipQueryInflux()
     result = influx.get_data_by_signature(hash)
+    # print(result)
     data = influx.convert_query_result_to_tuple(result)
 
     graph = Graph()

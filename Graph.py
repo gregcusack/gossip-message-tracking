@@ -11,17 +11,19 @@ class Graph():
 
     def build(self, data):
         for _, _, source, host_id in data:
-            if source == 'GFEztdM2' and host_id == "J6R86VAgLRJjwyhA9hXmp8Fw3ncYHkpw2mDFn4u3ifXu":
-                print(source, host_id)
+            if source == None or host_id == None:
+                print("ERROR: source or host is None!: " + str(source) + ", " + str(host_id))
+                continue
             self.G.add_edge(source, host_id[:8])
 
     def draw(self):
-        plt.figure(figsize=(40,20))
-        # pos = graphviz_layout(self.G, prog='neato')  # This one also good
-        pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
+        # plt.figure(figsize=(40,20))
+        plt.figure(figsize=(100, 60)) # can use 200, 120 to get a little more spacing
+        pos = graphviz_layout(self.G, prog='neato')  # This one also good
+        # pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
         # pos = nx.nx_agraph.graphviz_layout(self.G, prog='dot')
 
-        nx.draw(self.G, pos=pos, with_labels=True, )
+        nx.draw(self.G, pos=pos, with_labels=True)
         # nx.b
 
     def show(self):
