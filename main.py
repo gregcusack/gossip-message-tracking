@@ -20,11 +20,12 @@ if __name__ == "__main__":
 
     print("Number of validators: " + str(validators.count()))
 
-    print(validators.get_host_ids().tolist())
+    # print(validators.get_host_ids().tolist())
     # print(type(validators.get_host_ids()))
     influx = GossipQueryInflux()
-    result = influx.get_data_by_signature_and_host_ids_threaded(hash, validators.get_host_ids().tolist())
-    print(result)
+    # result = influx.get_data_by_signature_and_host_ids_threaded(hash, validators.get_host_ids().tolist())
+    result = influx.get_data_by_signature(hash)
+    # print(result)
 
     """
     TODO: take these host_ids. and then pass them into a new query function
@@ -57,7 +58,7 @@ if __name__ == "__main__":
     # print(validators)
 
     graph = Graph()
-    graph.build(data)
+    graph.build(data, color=True, nodes_to_color=validators.get_host_ids_first_n_chars(8).tolist())
     graph.cycle_exists()
     graph.draw()
     graph.save_plot()

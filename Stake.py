@@ -47,6 +47,12 @@ class Validators:
     def get_host_ids(self):
         return self.validators['host_id'].unique()
 
+    def get_host_ids_first_n_chars(self, n):
+        if n < 1:
+            print("ERROR: to few characters requests. defaulting to 8 chars")
+            n = 8
+        return self.validators['host_id'].str[:n].unique()
+
     def count(self):
         return len(self.validators.index)
 

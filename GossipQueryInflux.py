@@ -20,7 +20,6 @@ class GossipQueryInflux():
         self.client = InfluxDBClient(database=self.database, username=username, password=password, host=host, ssl=True, verify_ssl=True, port=port, timeout=300, retries=0)
 
     def execute_query(self, query):
-        print("exec query!!")
         return self.client.query(query)#, chunked=True, chunk_size=5000)
 
     def general_query(self):
@@ -44,15 +43,26 @@ class GossipQueryInflux():
         return self.execute_query(query)
 
     """
-    This converts the query result into something consumable  by the Graph
+    This converts a SINGLE query result into something consumable  by the Graph
     Must call this on the query result and pass in the resulting list
     to the graph.build(data) method
     """
-    def convert_query_result_to_tuple(self, results):
+    def convert_query_result_to_tuple(self, result):
+        data = []
+        for point in result.get_points():
+            data.append((point['origin'], point['signature'], point['from'], point['host_id']))
+
+        return data
+
+    """
+    This converts MULTIPLE query results into something consumable  by the Graph
+    Must call this on the query result and pass in the resulting list
+    to the graph.build(data) method
+    """
+    def convert_query_results_to_tuple(self, results):
         data = []
         for result in results:
-            for point in result.get_points():
-                data.append((point['origin'], point['signature'], point['from'], point['host_id']))
+            data.append(self.convert_query_result_to_tuple(result))
 
         return data
 
