@@ -4,6 +4,8 @@ import sys
 from dotenv import load_dotenv
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 class GossipQueryInflux():
     def __init__(self):
@@ -18,6 +20,7 @@ class GossipQueryInflux():
         self.client = InfluxDBClient(database=self.database, username=username, password=password, host=host, ssl=True, verify_ssl=True, port=port, timeout=300, retries=0)
 
     def execute_query(self, query):
+        print("exec query!!")
         return self.client.query(query)#, chunked=True, chunk_size=5000)
 
     def general_query(self):
@@ -88,37 +91,36 @@ class GossipQueryInflux():
         for i in range(0, len(host_ids), chunk_size):
             yield host_ids[i:i + chunk_size]
 
+    def build_query(self, chunk, signature):
+        host_id_conditions = ' or '.join([f'''("host_id"='{host_id}' or "from"='{host_id[:8]}')''' for host_id in chunk])
+        return f'''select "from", "signature", "origin", "host_id"
+                    FROM "{self.database}"."autogen"."gossip_crds_sample"
+                    WHERE time > now() - 14d and signature='{signature}' and ({host_id_conditions})'''
+
     def get_data_by_signature_and_host_ids(self, signature, host_ids, chunk_size=15):
         results = []
         for chunk in GossipQueryInflux.chunk_host_ids(host_ids, chunk_size):
-            host_id_conditions = ' or '.join([f'''("host_id"='{host_id}' or "from"='{host_id[:8]}')''' for host_id in chunk])
-            query = f'''select "from", "signature", "origin", "host_id"
-                        FROM "{self.database}"."autogen"."gossip_crds_sample"
-                        WHERE time > now() - 14d and signature='{signature}' and ({host_id_conditions})'''
-            res = self.execute_query(query)
-            print(type(res))
-            print(res)
-            print("-------")
-
+            res = self.execute_query(self.build_query(chunk, signature))
             results.append(res)
         return results
 
-    # def get_data_by_signature_and_host_ids_old(self, signature):
-    #     query = 'select \
-    #         "from", \
-    #         "signature", \
-    #         "origin", \
-    #         "host_id" \
-    #         FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
-    #         WHERE time > now() - 14d  \
-    #         and signature=\'' + signature + '\''
+    def get_data_by_signature_and_host_ids_threaded(self, signature, host_ids, chunk_size=10):
+        results = []
+        lock = threading.Lock()
+        futures = []
 
-    #     # # Add host_id conditions
-    #     # if len(host_ids) > 0:
-    #     #     host_id_conditions = ' or '.join([f''' "host_id"='{host_id}' or "from"='{host_id[:8]}' ''' for host_id in host_ids])
-    #     #     query += ' and (' + host_id_conditions + ')'
-    #     # else:
-    #     #     print("WARNING: host_ids len is less than 1! Executing query without host_ids")
+        with ThreadPoolExecutor() as executor:
+            for chunk in GossipQueryInflux.chunk_host_ids(host_ids, chunk_size):
+                # Schedule the tasks and store the future objects
+                future = executor.submit(self.execute_query, self.build_query(chunk, signature))
+                futures.append(future)
 
-    #     # print(query)
-    #     return self.execute_query(query)
+            # Iterate over the futures as they complete
+            for future in as_completed(futures):
+                res = future.result()  # This will block until the future is complete
+                with lock:
+                    print("results len: " + str(len(results)))
+                    print(type(res))
+                    results.append(res)  # Assuming res is a list of results
+
+        return results

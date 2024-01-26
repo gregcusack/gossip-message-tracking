@@ -23,7 +23,7 @@ if __name__ == "__main__":
     print(validators.get_host_ids().tolist())
     # print(type(validators.get_host_ids()))
     influx = GossipQueryInflux()
-    result = influx.get_data_by_signature_and_host_ids(hash, validators.get_host_ids().tolist())
+    result = influx.get_data_by_signature_and_host_ids_threaded(hash, validators.get_host_ids().tolist())
     print(result)
 
     """
