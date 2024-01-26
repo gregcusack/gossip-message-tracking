@@ -17,8 +17,8 @@ class Graph():
             self.G.add_edge(source, host_id[:8])
 
     def draw(self):
-        # plt.figure(figsize=(40,20))
-        plt.figure(figsize=(100, 60)) # can use 200, 120 to get a little more spacing
+        plt.figure(figsize=(20,10))
+        # plt.figure(figsize=(100, 60)) # can use 200, 120 to get a little more spacing
         pos = graphviz_layout(self.G, prog='neato')  # This one also good
         # pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
         # pos = nx.nx_agraph.graphviz_layout(self.G, prog='dot')

@@ -3,6 +3,7 @@ from datetime import datetime
 import sys
 from dotenv import load_dotenv
 import os
+import threading
 
 class GossipQueryInflux():
     def __init__(self):
@@ -14,10 +15,10 @@ class GossipQueryInflux():
         host = os.getenv("host")
         port = os.getenv("port")
 
-        self.client = InfluxDBClient(database=self.database, username=username, password=password, host=host, ssl=True, verify_ssl=True, port=port)
+        self.client = InfluxDBClient(database=self.database, username=username, password=password, host=host, ssl=True, verify_ssl=True, port=port, timeout=300, retries=0)
 
     def execute_query(self, query):
-        return self.client.query(query)
+        return self.client.query(query)#, chunked=True, chunk_size=5000)
 
     def general_query(self):
         query = 'select "from", "signature", "origin", "host_id" FROM "' + self.database + '"."autogen"."gossip_crds_sample" WHERE time > now() - 14d'
@@ -44,10 +45,11 @@ class GossipQueryInflux():
     Must call this on the query result and pass in the resulting list
     to the graph.build(data) method
     """
-    def convert_query_result_to_tuple(self, result):
+    def convert_query_result_to_tuple(self, results):
         data = []
-        for point in result.get_points():
-            data.append((point['origin'], point['signature'], point['from'], point['host_id']))
+        for result in results:
+            for point in result.get_points():
+                data.append((point['origin'], point['signature'], point['from'], point['host_id']))
 
         return data
 
@@ -79,3 +81,44 @@ class GossipQueryInflux():
             WHERE time > now() - 14d \
             and signature=\'' + signature + '\''
         return self.execute_query(query)
+
+    @staticmethod
+    def chunk_host_ids(host_ids, chunk_size):
+        """Yield successive chunk_size chunks from host_ids."""
+        for i in range(0, len(host_ids), chunk_size):
+            yield host_ids[i:i + chunk_size]
+
+    def get_data_by_signature_and_host_ids(self, signature, host_ids, chunk_size=15):
+        results = []
+        for chunk in GossipQueryInflux.chunk_host_ids(host_ids, chunk_size):
+            host_id_conditions = ' or '.join([f'''("host_id"='{host_id}' or "from"='{host_id[:8]}')''' for host_id in chunk])
+            query = f'''select "from", "signature", "origin", "host_id"
+                        FROM "{self.database}"."autogen"."gossip_crds_sample"
+                        WHERE time > now() - 14d and signature='{signature}' and ({host_id_conditions})'''
+            res = self.execute_query(query)
+            print(type(res))
+            print(res)
+            print("-------")
+
+            results.append(res)
+        return results
+
+    # def get_data_by_signature_and_host_ids_old(self, signature):
+    #     query = 'select \
+    #         "from", \
+    #         "signature", \
+    #         "origin", \
+    #         "host_id" \
+    #         FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
+    #         WHERE time > now() - 14d  \
+    #         and signature=\'' + signature + '\''
+
+    #     # # Add host_id conditions
+    #     # if len(host_ids) > 0:
+    #     #     host_id_conditions = ' or '.join([f''' "host_id"='{host_id}' or "from"='{host_id[:8]}' ''' for host_id in host_ids])
+    #     #     query += ' and (' + host_id_conditions + ')'
+    #     # else:
+    #     #     print("WARNING: host_ids len is less than 1! Executing query without host_ids")
+
+    #     # print(query)
+    #     return self.execute_query(query)
