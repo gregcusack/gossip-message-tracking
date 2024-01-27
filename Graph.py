@@ -1,17 +1,23 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import pygraphviz as pgv
 from networkx.drawing.nx_agraph import graphviz_layout
 
 
+class NodeStyle:
+    def __init__(self, color, size):
+        self.color = color
+        self.size = size
 
-class Graph():
+class Graph:
     def __init__(self):
         self.G = nx.DiGraph()
-        self.node_colors = {} # dict for node colors
-        self.node_sizes = {}
+        self.node_styles = {}
+        self.colored_count = 0
+        self.nodes_to_color = 0
 
-    def build(self, data, color=False, nodes_to_color=None, special_color='red', default_color='blue'):
+    def build(self, data, color=False, nodes_to_color=None, special_style=NodeStyle('red', 700), default_style=NodeStyle('blue', 300)): #special_color='red', default_color='blue', special_size=700, default_size=300):
         for _, _, source, host_id in data:
             if source == None or host_id == None:
                 print("ERROR: source or host is None!: " + str(source) + ", " + str(host_id))
@@ -19,18 +25,21 @@ class Graph():
             self.G.add_edge(source, host_id[:8])
 
             if color and nodes_to_color is not None:
+                self.nodes_to_color = nodes_to_color
                 # Assign colors if coloring is enabled
                 for node in [source, host_id[:8]]:
-                    if node in nodes_to_color:
-                        self.node_colors[node] = special_color
-                    else:
-                        self.node_colors[node] = default_color
+                    self.node_styles[node] = special_style if node in nodes_to_color else default_style
 
         if color:
-            red_count = sum(color == special_color for color in self.node_colors.values())
-            print("Total Nodes colored: {} out of {} top N% of nodes by stake".format(red_count, len(nodes_to_color)))
+            self.colored_count = sum(
+                (node_style.color == special_style.color and node_style.size == special_style.size)
+                for node_style in self.node_styles.values()
+            )
 
-    
+
+            print("Total Nodes colored: {} out of {} top N% of nodes by stake".format(self.colored_count, len(nodes_to_color)))
+
+
 
     def draw(self):
         # plt.figure(figsize=(20,10))
@@ -39,9 +48,22 @@ class Graph():
         # pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
         # pos = nx.nx_agraph.graphviz_layout(self.G, prog='dot')
 
-        colors = [self.node_colors.get(node, 'blue') for node in self.G.nodes()]  # Default to 'blue' if color not set
-        nx.draw(self.G, pos=pos, node_color=colors,  with_labels=True)
-        # nx.b
+        colors = [self.node_styles.get(node, NodeStyle('blue', 100)).color for node in self.G.nodes()]
+        sizes = [self.node_styles.get(node, NodeStyle('blue', 100)).size for node in self.G.nodes()]
+
+        nx.draw(self.G, pos=pos, node_color=colors, node_size=sizes, with_labels=True)
+
+    """
+    percentage: top percentage of staked nodes
+    """
+    def configure_legend(self, signature, percentage):
+        # Create a legend
+        red_patch = mpatches.Patch(color='red', label=f"Top {percentage}% of staked Nodes \n ({self.colored_count} found out of {len(self.nodes_to_color)} possible)")
+        blue_patch = mpatches.Patch(color='blue', label='All other Nodes')
+        plt.legend(handles=[red_patch, blue_patch], fontsize=100)
+        # plt.title("HEY", fontsize=30, loc="left")
+        plt.title(f"{signature} message propagation. Highlighting top {percentage}% of nodes by stake", fontsize=100, loc="center", backgroundcolor='green', color='orange')
+        # plt.tight_layout()
 
     def show(self):
         plt.show()

@@ -61,6 +61,7 @@ if __name__ == "__main__":
     graph.build(data, color=True, nodes_to_color=validators.get_host_ids_first_n_chars(8).tolist())
     graph.cycle_exists()
     graph.draw()
+    graph.configure_legend(hash, percentage)
     graph.save_plot()
 
 
