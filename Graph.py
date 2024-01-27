@@ -1,28 +1,69 @@
 import networkx as nx
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import pygraphviz as pgv
 from networkx.drawing.nx_agraph import graphviz_layout
 
 
+class NodeStyle:
+    def __init__(self, color, size):
+        self.color = color
+        self.size = size
 
-class Graph():
+class Graph:
     def __init__(self):
         self.G = nx.DiGraph()
+        self.node_styles = {}
+        self.colored_count = 0
+        self.nodes_to_color = 0
 
-    def build(self, data):
+    def build(self, data, color=False, nodes_to_color=None, special_style=NodeStyle('red', 700), default_style=NodeStyle('blue', 300)): #special_color='red', default_color='blue', special_size=700, default_size=300):
         for _, _, source, host_id in data:
-            if source == 'GFEztdM2' and host_id == "J6R86VAgLRJjwyhA9hXmp8Fw3ncYHkpw2mDFn4u3ifXu":
-                print(source, host_id)
+            if source == None or host_id == None:
+                print("ERROR: source or host is None!: " + str(source) + ", " + str(host_id))
+                continue
             self.G.add_edge(source, host_id[:8])
 
+            if color and nodes_to_color is not None:
+                self.nodes_to_color = nodes_to_color
+                # Assign colors if coloring is enabled
+                for node in [source, host_id[:8]]:
+                    self.node_styles[node] = special_style if node in nodes_to_color else default_style
+
+        if color:
+            self.colored_count = sum(
+                (node_style.color == special_style.color and node_style.size == special_style.size)
+                for node_style in self.node_styles.values()
+            )
+
+
+            print("Total Nodes colored: {} out of {} top N% of nodes by stake".format(self.colored_count, len(nodes_to_color)))
+
+
+
     def draw(self):
-        plt.figure(figsize=(40,20))
-        # pos = graphviz_layout(self.G, prog='neato')  # This one also good
-        pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
+        # plt.figure(figsize=(20,10))
+        plt.figure(figsize=(200, 120)) # can use 200, 120 to get a little more spacing
+        pos = graphviz_layout(self.G, prog='neato')  # This one also good
+        # pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
         # pos = nx.nx_agraph.graphviz_layout(self.G, prog='dot')
 
-        nx.draw(self.G, pos=pos, with_labels=True, )
-        # nx.b
+        colors = [self.node_styles.get(node, NodeStyle('blue', 100)).color for node in self.G.nodes()]
+        sizes = [self.node_styles.get(node, NodeStyle('blue', 100)).size for node in self.G.nodes()]
+
+        nx.draw(self.G, pos=pos, node_color=colors, node_size=sizes, with_labels=True)
+
+    """
+    percentage: top percentage of staked nodes
+    """
+    def configure_legend(self, signature, percentage):
+        # Create a legend
+        red_patch = mpatches.Patch(color='red', label=f"Top {percentage}% of staked Nodes \n ({self.colored_count} found out of {len(self.nodes_to_color)} possible)")
+        blue_patch = mpatches.Patch(color='blue', label='All other Nodes')
+        plt.legend(handles=[red_patch, blue_patch], fontsize=100)
+        # plt.title("HEY", fontsize=30, loc="left")
+        plt.title(f"{signature} message propagation. Highlighting top {percentage}% of nodes by stake", fontsize=100, loc="center", backgroundcolor='green', color='orange')
+        # plt.tight_layout()
 
     def show(self):
         plt.show()
@@ -33,7 +74,7 @@ class Graph():
     def cycle_exists(self):
         try:
             cycle = nx.find_cycle(self.G)
-            print("Cycle found:", cycle)
+            print("Cycle found: ", cycle)
             return True
         except nx.NetworkXNoCycle:
             print("No cycle found")
