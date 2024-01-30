@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import pygraphviz as pgv
 from networkx.drawing.nx_agraph import graphviz_layout
+from GossipCrdsSample import GossipCrdsSample
 
 
 class NodeStyle:
@@ -17,17 +18,20 @@ class Graph:
         self.colored_count = 0
         self.nodes_to_color = 0
 
+    """
+    data is of type GossipCrdsSample
+    """
     def build(self, data, color=False, nodes_to_color=None, special_style=NodeStyle('red', 700), default_style=NodeStyle('blue', 300)): #special_color='red', default_color='blue', special_size=700, default_size=300):
-        for _, _, source, host_id in data:
-            if source == None or host_id == None:
-                print("ERROR: source or host is None!: " + str(source) + ", " + str(host_id))
+        for sample in data:
+            if sample.source == None or sample.host_id == None:
+                print("ERROR: source or host is None!: " + str(sample.source) + ", " + str(sample.host_id))
                 continue
-            self.G.add_edge(source, host_id[:8])
+            self.G.add_edge(sample.source, sample.host_id[:8])
 
             if color and nodes_to_color is not None:
                 self.nodes_to_color = nodes_to_color
                 # Assign colors if coloring is enabled
-                for node in [source, host_id[:8]]:
+                for node in [sample.source, sample.host_id[:8]]:
                     self.node_styles[node] = special_style if node in nodes_to_color else default_style
 
         if color:

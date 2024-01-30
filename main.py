@@ -3,65 +3,57 @@ import sys
 from Graph import Graph
 import json
 import pandas as pd
-from Stake import Validators
+from Validators import Validators
+from Stats import Stats
 
+CHARS_TO_KEEP = 8
 
 if __name__ == "__main__":
-    hash = sys.argv[1] # could be origin or signature
-    percentage = 100
-    if len(sys.argv) > 2:
-        percentage = float(sys.argv[2])
-
+    percentage = float(sys.argv[2])
     validators = Validators('data/validator-stakes.json')
     validators.load()
     validators.sort(ascending=False)
 
-    validators.get_validators_by_cummulative_stake_percentage(percentage)
+    trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
 
-    print("Number of validators: " + str(validators.count()))
+    print("Number of validators: " + str(len(trimmed_validators)))
 
-    # print(validators.get_host_ids().tolist())
-    # print(type(validators.get_host_ids()))
     influx = GossipQueryInflux()
-    # result = influx.get_data_by_signature_and_host_ids_threaded(hash, validators.get_host_ids().tolist())
-    result = influx.get_data_by_signature(hash)
-    # print(result)
 
-    """
-    TODO: take these host_ids. and then pass them into a new query function
-    We only want to query based on specific signature and if
-     1) from==host_ids
-        - would get the next hop beyond the staked nodes we are interested in. aka who the nodes
-          we are interested in are sending to
-     2) host_id==host_ids
-        - this gets who is sending messages to the nodes are interested in.
+    if sys.argv[1] == "graph":
+        hash = sys.argv[3] # could be origin or signature
 
-    Node of interest is one within the top "percentage" of nodes by stake
-     Note: We need to think how this is going to look. it will be pretty disconnected right?
-     if there is a node we don't care about in the path between the origin and the node of interest
-     we'll see <rand> -> <NODE> and we will see <NODE> -> <rand>
-     <origin> -> <rand1> -> <NODE>
-        - we won't know who rand1 got their data from (unless origin is of interest. which it could be)
-     <origin> -> <rand1> -> <rand2> -> <NODE>
-        - we will see <origin> -> <rand1> connection (if origin is node of interest) and <rand2> -> <NODE> connection
-        - but we will not see <rand1> -> <rand2> so there will be a disconnect and will be unknown
-    """
+        result = influx.get_data_by_signature(hash)
+        data = influx.transform_query_results(result)
 
-    # influx = GossipQueryInflux()
-    # result = influx.get_data_by_signature(hash)
-    # print(result)
-    data = influx.convert_query_result_to_tuple(result)
+        graph = Graph()
+        graph.build(data, color=True, nodes_to_color=validators.get_host_ids_first_n_chars(trimmed_validators, CHARS_TO_KEEP).tolist())
+        graph.cycle_exists()
+        graph.draw()
+        graph.configure_legend(hash, percentage)
+        graph.save_plot()
+
+    elif sys.argv[1] == "ingress":
+        num_origins = int(sys.argv[3])
+        origins = validators.get_top_n_highest_staked_validators(num_origins)
+        origins = validators.get_host_ids_first_n_chars(origins, CHARS_TO_KEEP).tolist()
+
+        result = influx.get_data_by_multiple_origins(origins)
+        data = influx.transform_query_results(result)
+
+        stats = Stats(data)
+        validator_stake_map = validators.get_validator_stake_map(CHARS_TO_KEEP)
+        stats.populate_source_metrics_per_host(validator_stake_map, CHARS_TO_KEEP)
+        stats.print_host_to_source_mapping()
+
+        stats.calculate_median_source_stake_per_host_id()
+
+        sorted_list_by_host_id_stake = stats.sort_by_host_id_stake(validator_stake_map)
+        stats.plot_host_id_vs_median_stake(sorted_list_by_host_id_stake, num_origins)
+
+        # print(stats.sort_by_source_median_stake(validator_stake_map))
 
 
 
-
-    # print(validators)
-
-    graph = Graph()
-    graph.build(data, color=True, nodes_to_color=validators.get_host_ids_first_n_chars(8).tolist())
-    graph.cycle_exists()
-    graph.draw()
-    graph.configure_legend(hash, percentage)
-    graph.save_plot()
 
 

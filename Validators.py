@@ -42,19 +42,49 @@ class Validators:
         for index, row in self.validators.iterrows():
             sum_stake += row['activatedStake']
             if sum_stake >= target_stake:
-                self.validators = self.validators.iloc[:index+1]
+                return self.validators.iloc[:index+1]
 
     def get_host_ids(self):
         return self.validators['host_id'].unique()
 
-    def get_host_ids_first_n_chars(self, n):
+    def get_host_ids_first_n_chars(self, trimmed_validators, n):
         if n < 1:
             print("ERROR: to few characters requests. defaulting to 8 chars")
             n = 8
-        return self.validators['host_id'].str[:n].unique()
+        return trimmed_validators['host_id'].str[:n].unique()
 
     def count(self):
         return len(self.validators.index)
 
     def print_validators(self):
         print(self.validators)
+
+    """
+    Assumes self.validators is sorted already (descending)
+    n: number of validators to return
+    """
+    def get_top_n_highest_staked_validators(self, n):
+        return self.validators.head(n)
+
+    """
+    Assumes self.validators is sorted already (descending)
+    returns sorted validators by stake
+    """
+    def get_all(self):
+        return self.validators
+
+    def get_validator_stake_map(self, n):
+        # Truncate 'host_id' to first n characters and create a new column for it
+        self.validators['truncated_host_id'] = self.validators['host_id'].apply(lambda x: x[:n])
+
+        # Use the truncated 'host_id' as the index and convert the 'activatedStake' column to a dictionary
+        stake_map = self.validators.set_index('truncated_host_id')['activatedStake'].to_dict()
+
+        # Optionally, you might want to clean up by dropping the temporary column if not needed
+        self.validators.drop(columns=['truncated_host_id'], inplace=True)
+
+        return stake_map
+
+    # def get_validator_stake_map(self, n):
+    #     trimmed_host_ids = self.get_host_ids_first_n_chars(self.validators, n)
+    #     return trimmed_host_ids.set_index('host_id')['activatedStake'].to_dict()
