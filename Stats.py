@@ -109,8 +109,6 @@ class Stats:
         host_ids = [item[0] for item in filtered_list]
         median_stakes = [item[1] / LAMPORTS_PER_SOL for item in filtered_list] # convert lamports to sol
 
-        print(median_stakes)
-
         # Use indices on the x-axis for simplicity
         x = range(len(host_ids))
 

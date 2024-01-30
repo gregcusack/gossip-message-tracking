@@ -44,7 +44,7 @@ if __name__ == "__main__":
         stats = Stats(data)
         validator_stake_map = validators.get_validator_stake_map(CHARS_TO_KEEP)
         stats.populate_source_metrics_per_host(validator_stake_map, CHARS_TO_KEEP)
-        stats.print_host_to_source_mapping()
+        # stats.print_host_to_source_mapping()
 
         stats.calculate_median_source_stake_per_host_id()
 
