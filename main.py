@@ -47,11 +47,13 @@ if __name__ == "__main__":
         # stats.print_host_to_source_mapping()
 
         stats.calculate_median_source_stake_per_host_id()
+        stats.calculate_mode_source_stake_per_host_id()
 
         sorted_list_by_host_id_stake = stats.sort_by_host_id_stake(validator_stake_map)
-        stats.plot_host_id_vs_median_stake(sorted_list_by_host_id_stake, num_origins)
 
-        # print(stats.sort_by_source_median_stake(validator_stake_map))
+        stats.print_sorted_list_by_host_id_stake(sorted_list_by_host_id_stake)
+
+        # stats.plot_host_id_vs_median_stake(sorted_list_by_host_id_stake, num_origins)
 
 
 
