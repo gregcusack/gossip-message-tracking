@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from GossipCrdsSample import GossipCrdsSample
 
 
 class GossipQueryInflux():
@@ -46,11 +47,18 @@ class GossipQueryInflux():
     This converts a SINGLE query result into something consumable  by the Graph
     Must call this on the query result and pass in the resulting list
     to the graph.build(data) method
+    TODO: should its own struct with each of these values
     """
-    def convert_query_result_to_tuple(self, result):
+    def transform_query_results(self, result):
         data = []
         for point in result.get_points():
-            data.append((point['origin'], point['signature'], point['from'], point['host_id']))
+            data.append(GossipCrdsSample(
+                origin=point['origin'],
+                source=point['from'],
+                signature=point['signature'],
+                host_id=point['host_id']
+            ))
+            # data.append((point['origin'], point['signature'], point['from'], point['host_id']))
 
         return data
 
@@ -62,7 +70,7 @@ class GossipQueryInflux():
     def convert_query_results_to_tuple(self, results):
         data = []
         for result in results:
-            data.append(self.convert_query_result_to_tuple(result))
+            data.append(self.transform_query_results(result))
 
         return data
 
@@ -70,7 +78,7 @@ class GossipQueryInflux():
     """
     Get all data comining from a specific origin
     """
-    def get_data_by_origin(self, origin):
+    def get_data_by_single_origin(self, origin):
         query = 'select \
             "from", \
             "signature", \
@@ -134,3 +142,18 @@ class GossipQueryInflux():
                     results.append(res)  # Assuming res is a list of results
 
         return results
+
+    """
+    origins: list of origin nodes to get data from
+    """
+    def get_data_by_multiple_origins(self, origins):
+        if len(origins) < 1:
+            print("error origins < 1")
+            return
+
+        origin_conditions = ' or '.join([f''' "origin"='{origin[:8]}' ''' for origin in origins])
+        query = f'''select "from", "signature", "origin", "host_id"
+                    FROM "{self.database}"."autogen"."gossip_crds_sample"
+                    WHERE time > now() - 14d and ({origin_conditions})'''
+
+        return self.execute_query(query)
