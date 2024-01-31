@@ -5,6 +5,7 @@ import json
 import pandas as pd
 from Validators import Validators
 from Stats import Stats
+from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
 
 CHARS_TO_KEEP = 8
 
@@ -54,6 +55,13 @@ if __name__ == "__main__":
         # print(stats.sort_by_source_median_stake(validator_stake_map))
 
 
+    elif sys.argv[1] == "bucket":
+        sb = StakeBucket("origin")
 
-
+        print(sb.get_stake_bucket(100 * LAMPORTS_PER_SOL))
+        print(sb.get_stake_bucket(1000 * LAMPORTS_PER_SOL))
+        print(sb.get_stake_bucket(10000 * LAMPORTS_PER_SOL))
+        print(sb.get_stake_bucket(100000 * LAMPORTS_PER_SOL))
+        print(sb.get_stake_bucket(1000000 * LAMPORTS_PER_SOL))
+        print(sb.get_stake_bucket(10000000 * LAMPORTS_PER_SOL))
 
