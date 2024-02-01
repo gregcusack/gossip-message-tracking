@@ -67,10 +67,15 @@ if __name__ == "__main__":
         print(total_validator_stake)
         sb = StakeBucket(total_validator_stake)
         sb.set_stake_buckets(validator_stake_map)
-        # sb.print_buckets()
 
         sb.get_stake_cummulative_stake_percentage_per_bucket()
         sb.bucket_contents_to_file()
+
+    elif sys.argv[1] == "bucket_from_stake":
+        stake = int(sys.argv[3]) # in SOL
+        bucket = StakeBucket.get_stake_bucket(stake * LAMPORTS_PER_SOL)
+        print(f"stake: {stake}, bucket: {bucket}")
+
 
 
         # print(sb.get_stake_bucket(1 * LAMPORTS_PER_SOL))
@@ -80,5 +85,6 @@ if __name__ == "__main__":
         # print(sb.get_stake_bucket(10000 * LAMPORTS_PER_SOL))
         # print(sb.get_stake_bucket(100000 * LAMPORTS_PER_SOL))
         # print(sb.get_stake_bucket(1000000 * LAMPORTS_PER_SOL))
-        # print(sb.get_stake_bucket(10000000 * LAMPORTS_PER_SOL))
-
+        print(StakeBucket.get_stake_bucket(10000000 * LAMPORTS_PER_SOL))
+        print(StakeBucket.get_stake_bucket(11809658 * LAMPORTS_PER_SOL))
+        print(StakeBucket.get_stake_bucket(16700000 * LAMPORTS_PER_SOL))

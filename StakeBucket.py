@@ -38,7 +38,8 @@ class StakeBucket:
         let bucket = u64::BITS - stake.leading_zeros();
         (bucket as usize).min(NUM_PUSH_ACTIVE_SET_ENTRIES - 1)
     """
-    def get_stake_bucket(self, stake):
+    @staticmethod
+    def get_stake_bucket(stake):
         if stake is None:
             stake = 0
 
@@ -49,7 +50,7 @@ class StakeBucket:
 
     def set_stake_buckets(self, validator_stake_map):
         for node, stake in validator_stake_map.items():
-            bucket = self.get_stake_bucket(int(stake))
+            bucket = StakeBucket.get_stake_bucket(int(stake))
             # print(bucket, stake)
             self.buckets[bucket].update(stake // LAMPORTS_PER_SOL)
             # print(self.buckets[bucket].count)
