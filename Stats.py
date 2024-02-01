@@ -97,7 +97,23 @@ class Stats:
             origin_stake = validator_stake_map.get(origin, 0)
             for host_id, metrics in host_to_metrics.items():
                 host_id_stake = validator_stake_map.get(host_id, 0)
-                row = [origin, origin_stake / LAMPORTS_PER_SOL, host_id, host_id_stake / LAMPORTS_PER_SOL, metrics.num_ingress_messages, metrics.median_source_stake / LAMPORTS_PER_SOL, metrics.mode_source_host_ids, metrics.count]
+                if host_id_stake == 0:
+                    median_over_host_stake = 0
+                else:
+                    median_over_host_stake = (metrics.median_source_stake / host_id_stake)
+
+                # print(median_over_host_stake, metrics.median_source_stake, host_id_stake)
+                row = [
+                    origin,
+                    origin_stake / LAMPORTS_PER_SOL,
+                    host_id,
+                    host_id_stake / LAMPORTS_PER_SOL,
+                    metrics.num_ingress_messages,
+                    metrics.median_source_stake / LAMPORTS_PER_SOL,
+                    median_over_host_stake, #median as fraction of host_id stake
+                    metrics.mode_source_host_ids,
+                    metrics.count
+                ]
                 all_rows.append(row)
 
         return sorted(all_rows, key=lambda x: (x[1], x[3]), reverse=True)
@@ -105,10 +121,10 @@ class Stats:
     def write_origin_to_host_to_metrics_to_csv(self, sorted_rows, filename):
         with open(filename, 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(['origin', 'origin stake', 'host_id', 'host_id stake', '# of msgs', 'median of senders stake', 'mode source', 'count mode'])
+            csvwriter.writerow(['origin', 'origin stake', 'host_id', 'host_id stake', '# of msgs', 'median of senders stake', 'median/host_id stake (Sol)', 'mode source', 'count mode'])
             for row in sorted_rows:
                 # Ensure numerical values are rounded/formatted to two decimal points as needed when writing rows
-                formatted_row = [row[0], f"{row[1]:.2f}", row[2], f"{row[3]:.2f}", row[4], f"{row[5]:.2f}", row[6], row[7]]
+                formatted_row = [row[0], f"{row[1]:.2f}", row[2], f"{row[3]:.2f}", row[4], f"{row[5]:.2f}", row[6], row[7], row[8]]
                 csvwriter.writerow(formatted_row)
 
     def plot_median_ingress_stake_for_origin(self, sorted_rows, origin):
@@ -142,6 +158,39 @@ class Stats:
 
         plt.tight_layout()
         plt.savefig('data/host_id_vs_median_stake_for_origin_' + origin + '.png')
+
+    def plot_median_stake_over_host_stake_for_origin(self, sorted_rows, origin):
+        # Filter rows for the specified origin and where host_id stake is not 0
+        origin_rows = [row for row in sorted_rows if row[0] == origin and row[3] > 0]
+
+        # Check if there's data to plot after filtering
+        if not origin_rows:
+            print(f"No data to plot for origin: {origin} with non-zero host_id stake.")
+            return
+
+        # Extract host_ids and median stakes for plotting
+        host_ids = [row[2] for row in origin_rows]
+        stakes = [row[6] for row in origin_rows]
+        # print(stakes)
+
+        # Plotting
+        x = range(len(host_ids))
+
+        # Create plot
+        plt.figure(figsize=(200, 60))
+        plt.plot(x, stakes, marker='x', linewidth=3)  # Plot median_stake vs. x (indices)
+        # plt.ylim(0, 250000) # y limit to 300k sol
+        plt.margins(x=0.005, tight=True)
+
+        plt.xlabel('Host IDs (sorted by host stake - descending)', fontsize=100)
+        plt.ylabel('Median Stake / Host Stake (Sol)', fontsize=100)
+        plt.title('Median Ingress Stake (Sol) by Host ID. Origin: ' + origin, fontsize=125)
+
+        plt.xticks(x, host_ids, rotation='vertical', fontsize=8)
+        plt.tick_params(axis='y', labelsize=80)
+
+        plt.tight_layout()
+        plt.savefig('data/median_stake_over_host_id_stake_for_origin_' + origin + '.png')
 
 
     """
