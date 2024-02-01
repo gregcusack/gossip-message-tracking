@@ -9,17 +9,45 @@ stake_columns_to_drop = [
     "delinquent",
     "skipRate",
     "commission",
-    "voteAccountPubkey"
+    "voteAccountPubkey",
+    "version"
+]
+
+gossip_columns_to_drop = [
+    "ipAddress",
+    "gossipPort",
+    "featureSet",
+    "rpcHost",
+    "tpuPort",
+    "version",
+    "pubsubHost"
 ]
 
 class Validators:
-    def __init__(self, path_to_stake_file):
+    def __init__(self, path_to_stake_file, path_to_gossip_file):
         self.path = path_to_stake_file
+        self.path_gossip = path_to_gossip_file
 
     def load(self):
         raw_data = json.load(open(self.path))
         stakes = pd.DataFrame(raw_data["validators"])
-        self.validators = stakes.drop(stake_columns_to_drop, axis=1)
+        self.validator_stakes = stakes.drop(stake_columns_to_drop, axis=1)
+        # print(self.validator_stakes)
+
+    def load_gossip(self):
+        raw_data = json.load(open(self.path_gossip))
+        gossip_validators = pd.DataFrame(raw_data)
+        self.gossip_validators = gossip_validators.drop(gossip_columns_to_drop, axis=1)
+        # print(self.gossip_validators)
+
+    def merge_stake_and_gossip(self):
+        # Merge the dataframes on 'identityPubkey', doing a left merge to keep all rows from 'gossip'
+        self.validators = pd.merge(self.gossip_validators, self.validator_stakes, on='identityPubkey', how='left')
+
+        # Replace NaN values in 'activatedStake' with 0
+        self.validators['activatedStake'] = self.validators['activatedStake'].fillna(0)
+
+        # print(self.validators)
 
     def sort(self, ascending):
         self.validators = self.validators.sort_values(by='activatedStake', ascending=ascending)
