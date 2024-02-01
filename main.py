@@ -2,16 +2,18 @@ from GossipQueryInflux import GossipQueryInflux
 import sys
 from Graph import Graph
 import json
-import pandas as pd
 from Validators import Validators
 from Stats import Stats
+from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
 
 CHARS_TO_KEEP = 8
 
 if __name__ == "__main__":
     percentage = float(sys.argv[2])
-    validators = Validators('data/validator-stakes.json')
+    validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
+    validators.load_gossip()
     validators.load()
+    validators.merge_stake_and_gossip()
     validators.sort(ascending=False)
 
     trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
@@ -54,6 +56,35 @@ if __name__ == "__main__":
         # print(stats.sort_by_source_median_stake(validator_stake_map))
 
 
+    elif sys.argv[1] == "bucket":
+        num_origins = int(sys.argv[3])
+        origins = validators.get_top_n_highest_staked_validators(num_origins)
+        origins = validators.get_host_ids_first_n_chars(origins, CHARS_TO_KEEP).tolist()
+
+        validator_stake_map = validators.get_validator_stake_map(CHARS_TO_KEEP)
+
+        total_validator_stake = validators.total_stake() // LAMPORTS_PER_SOL
+        print(total_validator_stake)
+        sb = StakeBucket(total_validator_stake)
+        sb.set_stake_buckets(validator_stake_map)
+
+        sb.get_stake_cummulative_stake_percentage_per_bucket()
+        sb.bucket_contents_to_file()
+
+    elif sys.argv[1] == "bucket_from_stake":
+        stake = int(sys.argv[3]) # in SOL
+        bucket = StakeBucket.get_stake_bucket(stake * LAMPORTS_PER_SOL)
+        print(f"stake: {stake}, bucket: {bucket}")
 
 
 
+        # print(sb.get_stake_bucket(1 * LAMPORTS_PER_SOL))
+        # print(sb.get_stake_bucket(10 * LAMPORTS_PER_SOL))
+        # print(sb.get_stake_bucket(100 * LAMPORTS_PER_SOL))
+        # print(sb.get_stake_bucket(1000 * LAMPORTS_PER_SOL))
+        # print(sb.get_stake_bucket(10000 * LAMPORTS_PER_SOL))
+        # print(sb.get_stake_bucket(100000 * LAMPORTS_PER_SOL))
+        # print(sb.get_stake_bucket(1000000 * LAMPORTS_PER_SOL))
+        print(StakeBucket.get_stake_bucket(10000000 * LAMPORTS_PER_SOL))
+        print(StakeBucket.get_stake_bucket(11809658 * LAMPORTS_PER_SOL))
+        print(StakeBucket.get_stake_bucket(16700000 * LAMPORTS_PER_SOL))
