@@ -77,7 +77,7 @@ class StakeBucket:
             all_rows.append(row)
 
 
-        filename = 'data/stake_per_bucket.csv'
+        filename = 'plots/stake_per_bucket.csv'
         with open(filename, mode='w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(['bucket', '# nodes', 'sum of node stakes (Sol)', 'median stake (Sol)', 'fraction of total stake'])
