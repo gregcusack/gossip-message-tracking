@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 import csv
+from StakeBucket import StakeBucket
 
 LAMPORTS_PER_SOL = 1000000000.0
 
@@ -159,7 +160,7 @@ class Stats:
         plt.tight_layout()
         plt.savefig('data/host_id_vs_median_stake_for_origin_' + origin + '.png')
 
-    def plot_median_stake_over_host_stake_for_origin(self, sorted_rows, origin):
+    def plot_median_stake_over_host_stake_for_origin(self, sorted_rows, origin, stake_rank):
         # Filter rows for the specified origin and where host_id stake is not 0
         origin_rows = [row for row in sorted_rows if row[0] == origin and row[3] > 0]
 
@@ -171,7 +172,9 @@ class Stats:
         # Extract host_ids and median stakes for plotting
         host_ids = [row[2] for row in origin_rows]
         stakes = [row[6] for row in origin_rows]
-        # print(stakes)
+
+        stake_buckets = [StakeBucket.get_stake_bucket(int(row[3] * LAMPORTS_PER_SOL)) for row in origin_rows]
+        bucket_changes = [i+1 for i in range(len(stake_buckets)-1) if stake_buckets[i] != stake_buckets[i+1]]
 
         # Plotting
         x = range(len(host_ids))
@@ -179,19 +182,26 @@ class Stats:
         # Create plot
         plt.figure(figsize=(200, 60))
         plt.plot(x, stakes, marker='x', linewidth=3)  # Plot median_stake vs. x (indices)
-        # plt.ylim(0, 250000) # y limit to 300k sol
+        # plt.ylim(0, 1) # y limit to 300k sol
+        plt.yscale('log', base=2)
+        plt.axhline(y=1, color='red', linestyle='--', linewidth=5)
         plt.margins(x=0.005, tight=True)
+        for idx in bucket_changes:
+            plt.axvline(x=idx, color='orange', linestyle='--', linewidth=5)
+
+            if idx < len(host_ids) - 1:
+                # Place text slightly to the left of the vertical line
+                plt.text(x=idx + 0.5, y=max(stakes) / 2, s=f'B{stake_buckets[idx]}', color='orange', rotation=90, verticalalignment='center', fontsize=50)
 
         plt.xlabel('Host IDs (sorted by host stake - descending)', fontsize=100)
         plt.ylabel('Median Stake / Host Stake (Sol)', fontsize=100)
-        plt.title('Median Ingress Stake (Sol) by Host ID. Origin: ' + origin, fontsize=125)
+        plt.title('Ratio of Median Ingress Stake to Host ID Stake. Origin: ' + origin + ', Stake Rank: ' + str(stake_rank), fontsize=125)
 
         plt.xticks(x, host_ids, rotation='vertical', fontsize=8)
         plt.tick_params(axis='y', labelsize=80)
 
         plt.tight_layout()
-        plt.savefig('data/median_stake_over_host_id_stake_for_origin_' + origin + '.png')
-
+        plt.savefig('plots/median_stake_over_host_id_stake_for_origin_stake_rank_' + str(stake_rank) + '_origin_' + origin + '.png')
 
     """
     validator_stakes. dict: host_id -> stake where host_id is first n chars
@@ -241,4 +251,4 @@ class Stats:
         plt.tick_params(axis='y', labelsize=80)
 
         plt.tight_layout()
-        plt.savefig('data/host_id_vs_median_stake_top_' + str(num_origins) + '_origins.png')
+        plt.savefig('plots/host_id_vs_median_stake_top_' + str(num_origins) + '_origins.png')

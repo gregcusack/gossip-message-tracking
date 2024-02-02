@@ -50,13 +50,13 @@ if __name__ == "__main__":
 
         stats.calculate_source_stake_per_host_id_per_origin_metrics()
 
-        output_csv = 'data/origin_to_host_to_metrics_top_ ' + str(num_origins) + '_origins.csv'
+        output_csv = 'plots/origin_to_host_to_metrics_top_ ' + str(num_origins) + '_origins.csv'
         sorted_rows = stats.sort_origin_to_host_to_metrics_mapping(validator_stake_map)
-        stats.write_origin_to_host_to_metrics_to_csv(sorted_rows, output_csv)
+        # stats.write_origin_to_host_to_metrics_to_csv(sorted_rows, output_csv)
 
-        for origin in origins:
-            # stats.plot_median_ingress_stake_for_origin(sorted_rows, origin)
-            stats.plot_median_stake_over_host_stake_for_origin(sorted_rows, origin)
+        for stake_rank, origin in enumerate(origins):
+            stats.plot_median_ingress_stake_for_origin(sorted_rows, origin)
+            stats.plot_median_stake_over_host_stake_for_origin(sorted_rows, origin, stake_rank)
         # sorted_list_by_host_id_stake = stats.sort_by_origin_then_host_id_stake(validator_stake_map)
         # stats.plot_host_id_vs_median_stake(sorted_list_by_host_id_stake, num_origins)
 
