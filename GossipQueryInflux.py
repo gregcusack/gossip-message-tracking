@@ -27,6 +27,17 @@ class GossipQueryInflux():
         query = 'select "from", "signature", "origin", "host_id" FROM "' + self.database + '"."autogen"."gossip_crds_sample" WHERE time > now() - 14d'
         return self.execute_query(query)
 
+    def query_last_day(self):
+        query = 'select \
+            "from", \
+            "signature", \
+            "origin", \
+            "host_id" \
+            FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
+            WHERE time > now() - 1d'
+
+        return self.execute_query(query)
+
     """
     This gets the intial set of nodes an origin sends its messages to
     """
@@ -53,6 +64,7 @@ class GossipQueryInflux():
         data = []
         for point in result.get_points():
             data.append(GossipCrdsSample(
+                origin=point['time'],
                 origin=point['origin'],
                 source=point['from'],
                 signature=point['signature'],

@@ -9,6 +9,18 @@ from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
 CHARS_TO_KEEP = 8
 
 if __name__ == "__main__":
+    influx = GossipQueryInflux()
+
+    if sys.argv[1] == "crontab":
+        print("running crontab")
+        result = influx.query_last_day()
+        data = influx.transform_query_results(result)
+        
+
+        # print(type(data))
+
+        sys.exit(0)
+
     percentage = float(sys.argv[2])
     validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
     validators.load_gossip()
@@ -19,8 +31,6 @@ if __name__ == "__main__":
     trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
 
     print("Number of validators: " + str(len(trimmed_validators)))
-
-    influx = GossipQueryInflux()
 
     if sys.argv[1] == "graph":
         hash = sys.argv[3] # could be origin or signature
@@ -38,6 +48,7 @@ if __name__ == "__main__":
     elif sys.argv[1] == "ingress":
         num_origins = int(sys.argv[3])
         origins = validators.get_top_n_highest_staked_validators(num_origins)
+        # origins = validators.get_validators_in_range(1000, 1002)
         origins = validators.get_host_ids_first_n_chars(origins, CHARS_TO_KEEP).tolist()
 
         result = influx.get_data_by_multiple_origins(origins)
