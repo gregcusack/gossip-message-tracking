@@ -5,6 +5,7 @@ from Validators import Validators
 from Stats import Stats
 from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
 from Crontab import Crontab
+from datetime import datetime
 
 CHARS_TO_KEEP = 8
 
@@ -12,23 +13,25 @@ if __name__ == "__main__":
     influx = GossipQueryInflux()
 
     if sys.argv[1] == "crontab":
-        print("running crontab")
+        print("------------------------------------------------------------")
+        print(f"Running Crontab at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         result = influx.query_last_day()
         data = influx.transform_query_results(result)
 
         ct = Crontab()
         ct.read_df_yesterday()
         ct.build_df_today(data)
-        print("df_today_shape")
+        print("df_today_shape from query")
         print(ct.get_df_today_size())
 
         if ct.df_yesterday_exists():
             print("df_yesterday exists")
             ct.drop_duplicates_from_today()
 
-        print("df_today_shape")
+        print("df_today_shape after trim")
         print(ct.get_df_today_size())
         ct.write_df_to_file()
+        print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         sys.exit(0)
 
     percentage = float(sys.argv[2])

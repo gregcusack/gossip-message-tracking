@@ -34,7 +34,7 @@ class GossipQueryInflux():
             "origin", \
             "host_id" \
             FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
-            WHERE time > now() - 1d'
+            WHERE time > now() - 1d'#4d and time < now() - 13d'
 
         return self.execute_query(query)
 

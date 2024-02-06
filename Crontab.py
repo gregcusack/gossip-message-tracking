@@ -30,7 +30,7 @@ class Crontab:
 
     @staticmethod
     def build_filename(date):
-        return "crontab_data/gossip_crds_sample_" + date + ".parquet"
+        return "/home/sol/gossip_crds_sample_data/gossip_crds_sample_" + date + ".parquet"
 
     @staticmethod
     def get_filename_today():
