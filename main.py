@@ -5,6 +5,7 @@ import json
 from Validators import Validators
 from Stats import Stats
 from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
+from Crontab import Crontab
 
 CHARS_TO_KEEP = 8
 
@@ -15,7 +16,22 @@ if __name__ == "__main__":
         print("running crontab")
         result = influx.query_last_day()
         data = influx.transform_query_results(result)
-        
+
+        ct = Crontab()
+        ct.read_df_yesterday()
+        ct.build_df_today(data)
+        print("df_today_shape")
+        print(ct.get_df_today_size())
+
+        if ct.df_yesterday_exists():
+            print("df_yesterday exists")
+            ct.drop_duplicates_from_today()
+
+        print("df_today_shape")
+        print(ct.get_df_today_size())
+        ct.write_df_to_file()
+
+
 
         # print(type(data))
 

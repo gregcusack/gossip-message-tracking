@@ -61,18 +61,16 @@ class GossipQueryInflux():
     TODO: should its own struct with each of these values
     """
     def transform_query_results(self, result):
-        data = []
-        for point in result.get_points():
-            data.append(GossipCrdsSample(
-                origin=point['time'],
+        return [
+            GossipCrdsSample(
+                timestamp=point['time'],
                 origin=point['origin'],
-                source=point['from'],
+                source=point['from'],  # Assuming 'from' should be mapped to 'source'
                 signature=point['signature'],
                 host_id=point['host_id']
-            ))
-            # data.append((point['origin'], point['signature'], point['from'], point['host_id']))
-
-        return data
+            )
+            for point in result.get_points()
+        ]
 
     """
     This converts MULTIPLE query results into something consumable  by the Graph
