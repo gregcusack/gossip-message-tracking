@@ -1,7 +1,6 @@
 from GossipQueryInflux import GossipQueryInflux
 import sys
 from Graph import Graph
-import json
 from Validators import Validators
 from Stats import Stats
 from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
@@ -30,11 +29,6 @@ if __name__ == "__main__":
         print("df_today_shape")
         print(ct.get_df_today_size())
         ct.write_df_to_file()
-
-
-
-        # print(type(data))
-
         sys.exit(0)
 
     percentage = float(sys.argv[2])

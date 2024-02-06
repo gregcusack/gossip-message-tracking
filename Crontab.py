@@ -23,17 +23,10 @@ for i in range(num .parquet files in crontab_data)
 
 """
 
-# # Set option to display all rows
-# pd.set_option('display.max_rows', None)
-
-# # Set option to display all columns
-# pd.set_option('display.max_columns', None)
-
 class Crontab:
     def __init__(self):
         self.df_today = None
         self.df_yesterday = None
-        # print(self.df)
 
     @staticmethod
     def build_filename(date):
@@ -46,7 +39,6 @@ class Crontab:
 
     @staticmethod
     def get_filename_yesterday():
-        # Get today's date
         yesterday = datetime.today() - timedelta(days=1)
         yesterday = yesterday.strftime('%m_%d_%Y')
         return Crontab.build_filename(yesterday)
@@ -64,18 +56,16 @@ class Crontab:
 
     def read_df_yesterday(self):
         try:
-            # Attempt to read the Parquet file into a DataFrame
             self.df_yesterday = pd.read_parquet(Crontab.get_filename_yesterday())
-            # Display the first few rows of the DataFrame
-            # print(self.df_yesterday.head())
         except FileNotFoundError:
             print(f"The file '{Crontab.get_filename_yesterday()}' does not exist. This is a first run")
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
 
+    """
+    These queries can be large: ~167M, so we compress them
+    """
     def write_df_to_file(self):
-        # self.df.to_csv(filename, index=False, compression='gzip')
-        # self.df.to_pickle('filename.pkl.gz', compression='gzip')
         if self.df_today is not None:
             self.df_today.to_parquet(Crontab.get_filename_today(), compression='gzip')
         else:
@@ -87,7 +77,7 @@ class Crontab:
         return False
 
     def drop_duplicates_from_today(self):
-        # Step 1: Concatenate the two DataFrames with an additional column to distinguish them
+        # Concatenate the two DataFrames with an additional column to distinguish them
         self.df_yesterday['DataFrame_ID'] = 'yesterday'
         self.df_today['DataFrame_ID'] = 'today'
 
@@ -98,7 +88,7 @@ class Crontab:
         # and ensuring we're selecting rows that originally belonged to 'today'
         cleaned_today = combined[~duplicates_mask & (combined['DataFrame_ID'] == 'today')]
 
-        # Drop DataFrame_ID column 
+        # Drop DataFrame_ID column
         self.df_today = cleaned_today.drop(columns=['DataFrame_ID']) #.reset_index(drop=True, inplace=True)
 
     def get_df_today(self):
