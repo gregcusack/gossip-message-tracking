@@ -27,6 +27,18 @@ class GossipQueryInflux():
         query = 'select "from", "signature", "origin", "host_id" FROM "' + self.database + '"."autogen"."gossip_crds_sample" WHERE time > now() - 14d'
         return self.execute_query(query)
 
+    def query_day_range(self, start, stop):
+        query = 'select \
+            "from", \
+            "signature", \
+            "origin", \
+            "host_id" \
+            FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
+            WHERE time > now() - ' + str(start) + 'd and time < now() - ' + str(stop) + 'd' #4d and time < now() - 13d'
+        print(query)
+
+        return self.execute_query(query)
+
     def query_last_day(self):
         query = 'select \
             "from", \

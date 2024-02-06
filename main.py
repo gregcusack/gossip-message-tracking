@@ -12,25 +12,48 @@ CHARS_TO_KEEP = 8
 if __name__ == "__main__":
     influx = GossipQueryInflux()
 
-    if sys.argv[1] == "crontab":
+    if sys.argv[1] == "crontab-loop":
         print("------------------------------------------------------------")
+        print(f"Running Crontab Loop at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
+        for i in range(14, 0, -1):
+            result = influx.query_day_range(i, i-1)
+            data = influx.transform_query_results(result)
+            ct = Crontab()
+
+            ct.read_df_n_days_ago(i+1)
+            ct.build_df_now(data)
+            print("df_today_shape from query")
+            print(ct.get_df_now_size())
+
+            if ct.df_n_days_ago_exists():
+                print("df_yesterday exists")
+                ct.drop_duplicates_from_current_df()
+
+            print("df_today_shape after trim")
+            print(ct.get_df_now_size())
+            ct.write_df_n_days_ago_to_file(i)
+            ct.reset_dfs()
+            print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
+            sys.exit(0)
+
+    if sys.argv[1] == "crontab":
         print(f"Running Crontab at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         result = influx.query_last_day()
         data = influx.transform_query_results(result)
 
         ct = Crontab()
-        ct.read_df_yesterday()
-        ct.build_df_today(data)
-        print("df_today_shape from query")
-        print(ct.get_df_today_size())
+        ct.read_previous_df()
+        ct.build_df_now(data)
+        print("df_now_shape from query")
+        print(ct.get_df_now_size())
 
-        if ct.df_yesterday_exists():
-            print("df_yesterday exists")
-            ct.drop_duplicates_from_today()
+        if ct.df_previous_exists():
+            print("df_previous exists")
+            ct.drop_duplicates_from_df_now()
 
-        print("df_today_shape after trim")
-        print(ct.get_df_today_size())
-        ct.write_df_to_file()
+        print("df_now_shape after trim")
+        print(ct.get_df_now_size())
+        ct.write_df_now_to_file()
         print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         sys.exit(0)
 
