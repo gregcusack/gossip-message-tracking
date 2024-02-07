@@ -158,7 +158,7 @@ class Stats:
         plt.tick_params(axis='y', labelsize=80)
 
         plt.tight_layout()
-        plt.savefig('data/host_id_vs_median_stake_for_origin_' + origin + '.png')
+        plt.savefig('plots/host_id_vs_median_stake_for_origin_' + origin + '.png')
 
     def plot_median_stake_over_host_stake_for_origin(self, sorted_rows, origin, stake_rank):
         # Filter rows for the specified origin and where host_id stake is not 0

@@ -27,6 +27,29 @@ class GossipQueryInflux():
         query = 'select "from", "signature", "origin", "host_id" FROM "' + self.database + '"."autogen"."gossip_crds_sample" WHERE time > now() - 14d'
         return self.execute_query(query)
 
+    def query_day_range(self, start, stop):
+        query = 'select \
+            "from", \
+            "signature", \
+            "origin", \
+            "host_id" \
+            FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
+            WHERE time > now() - (' + str(start) + 'd + 1h) and time < now() - ' + str(stop) + 'd' # get 25 hours windows
+        print(query)
+
+        return self.execute_query(query)
+
+    def query_last_day(self):
+        query = 'select \
+            "from", \
+            "signature", \
+            "origin", \
+            "host_id" \
+            FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
+            WHERE time > now() - 1d'#4d and time < now() - 13d'
+
+        return self.execute_query(query)
+
     """
     This gets the intial set of nodes an origin sends its messages to
     """
@@ -50,17 +73,16 @@ class GossipQueryInflux():
     TODO: should its own struct with each of these values
     """
     def transform_query_results(self, result):
-        data = []
-        for point in result.get_points():
-            data.append(GossipCrdsSample(
+        return [
+            GossipCrdsSample(
+                timestamp=point['time'],
                 origin=point['origin'],
-                source=point['from'],
+                source=point['from'],  # Assuming 'from' should be mapped to 'source'
                 signature=point['signature'],
                 host_id=point['host_id']
-            ))
-            # data.append((point['origin'], point['signature'], point['from'], point['host_id']))
-
-        return data
+            )
+            for point in result.get_points()
+        ]
 
     """
     This converts MULTIPLE query results into something consumable  by the Graph

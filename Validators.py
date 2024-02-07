@@ -94,6 +94,9 @@ class Validators:
     def get_top_n_highest_staked_validators(self, n):
         return self.validators.head(n)
 
+    def get_validators_in_range(self, start, end):
+        return self.validators.iloc[start:end + 1]
+
     """
     Assumes self.validators is sorted already (descending)
     returns sorted validators by stake

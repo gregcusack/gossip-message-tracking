@@ -1,7 +1,8 @@
 
 
 class GossipCrdsSample:
-    def __init__(self, origin, source, signature, host_id):
+    def __init__(self, timestamp, origin, source, signature, host_id):
+        self.timestamp = timestamp
         self.origin = origin
         self.source = source
         self.signature = signature

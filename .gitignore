@@ -3,3 +3,4 @@ venv/
 __pycache__/
 *.png
 *.csv
+crontab_data/

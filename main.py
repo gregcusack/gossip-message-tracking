@@ -1,14 +1,64 @@
 from GossipQueryInflux import GossipQueryInflux
 import sys
 from Graph import Graph
-import json
 from Validators import Validators
 from Stats import Stats
 from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
+from Crontab import Crontab
+from datetime import datetime
 
 CHARS_TO_KEEP = 8
 
 if __name__ == "__main__":
+    influx = GossipQueryInflux()
+
+    if sys.argv[1] == "crontab-loop":
+        print("------------------------------------------------------------")
+        print(f"Running Crontab Loop at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
+
+        for i in range(14, 0, -1):
+            result = influx.query_day_range(i, i-1)
+            data = influx.transform_query_results(result)
+            ct = Crontab()
+
+            ct.read_df_n_days_ago(i+1)
+
+            ct.build_df_now(data)
+            print("df_today_shape from query")
+            print(ct.get_df_now_size())
+
+            if ct.df_n_days_ago_exists():
+                print("df_yesterday exists")
+                ct.drop_duplicates_from_current_df()
+
+            print("df_today_shape after trim")
+            print(ct.get_df_now_size())
+            ct.write_df_n_days_ago_to_file(i)
+            ct.reset_dfs()
+            print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
+        sys.exit(0)
+
+    if sys.argv[1] == "crontab":
+        print(f"Running Crontab at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
+        result = influx.query_last_day()
+        data = influx.transform_query_results(result)
+
+        ct = Crontab()
+        ct.read_previous_df()
+        ct.build_df_now(data)
+        print("df_now_shape from query")
+        print(ct.get_df_now_size())
+
+        if ct.df_previous_exists():
+            print("df_previous exists")
+            ct.drop_duplicates_from_df_now()
+
+        print("df_now_shape after trim")
+        print(ct.get_df_now_size())
+        ct.write_df_now_to_file()
+        print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
+        sys.exit(0)
+
     percentage = float(sys.argv[2])
     validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
     validators.load_gossip()
@@ -19,8 +69,6 @@ if __name__ == "__main__":
     trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
 
     print("Number of validators: " + str(len(trimmed_validators)))
-
-    influx = GossipQueryInflux()
 
     if sys.argv[1] == "graph":
         hash = sys.argv[3] # could be origin or signature
@@ -38,6 +86,7 @@ if __name__ == "__main__":
     elif sys.argv[1] == "ingress":
         num_origins = int(sys.argv[3])
         origins = validators.get_top_n_highest_staked_validators(num_origins)
+        # origins = validators.get_validators_in_range(1000, 1002)
         origins = validators.get_host_ids_first_n_chars(origins, CHARS_TO_KEEP).tolist()
 
         result = influx.get_data_by_multiple_origins(origins)
