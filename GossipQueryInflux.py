@@ -34,7 +34,7 @@ class GossipQueryInflux():
             "origin", \
             "host_id" \
             FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
-            WHERE time > now() - ' + str(start) + 'd and time < now() - ' + str(stop) + 'd' #4d and time < now() - 13d'
+            WHERE time > now() - (' + str(start) + 'd + 1h) and time < now() - ' + str(stop) + 'd' # get 25 hours windows
         print(query)
 
         return self.execute_query(query)

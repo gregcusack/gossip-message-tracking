@@ -67,7 +67,7 @@ class Crontab:
     def get_filename_n_days_ago(n):
         today = datetime.today()
         n_days_ago = today - timedelta(days=n)
-        return Crontab.build_filename(n_days_ago.strftime('%m_%d_%Y'))
+        return Crontab.build_filename(n_days_ago.strftime('%m_%d_%Y'), "AM")
 
     def build_df_now(self, data):
         data_dict = [{

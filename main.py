@@ -15,12 +15,14 @@ if __name__ == "__main__":
     if sys.argv[1] == "crontab-loop":
         print("------------------------------------------------------------")
         print(f"Running Crontab Loop at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
+
         for i in range(14, 0, -1):
             result = influx.query_day_range(i, i-1)
             data = influx.transform_query_results(result)
             ct = Crontab()
 
             ct.read_df_n_days_ago(i+1)
+
             ct.build_df_now(data)
             print("df_today_shape from query")
             print(ct.get_df_now_size())
@@ -34,7 +36,7 @@ if __name__ == "__main__":
             ct.write_df_n_days_ago_to_file(i)
             ct.reset_dfs()
             print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
-            sys.exit(0)
+        sys.exit(0)
 
     if sys.argv[1] == "crontab":
         print(f"Running Crontab at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
