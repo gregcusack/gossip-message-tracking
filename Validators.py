@@ -28,7 +28,7 @@ class Validators:
         self.path = path_to_stake_file
         self.path_gossip = path_to_gossip_file
 
-    def load(self):
+    def load_stakes(self):
         raw_data = json.load(open(self.path))
         stakes = pd.DataFrame(raw_data["validators"])
         self.validator_stakes = stakes.drop(stake_columns_to_drop, axis=1)
@@ -54,6 +54,12 @@ class Validators:
         self.validators = self.validators.reset_index(drop=True)
         self.validators.rename(columns = {'identityPubkey':'host_id'}, inplace = True)
 
+    def sort_staked(self, ascending):
+        self.validator_stakes = self.validator_stakes.sort_values(by='activatedStake', ascending=ascending)
+        self.validator_stakes = self.validator_stakes.reset_index(drop=True)
+        self.validator_stakes.rename(columns = {'identityPubkey':'host_id'}, inplace = True)
+
+
     def total_stake(self):
         return self.validators['activatedStake'].sum()
 
@@ -76,12 +82,17 @@ class Validators:
         return self.validators['host_id'].unique()
 
     def get_host_ids_staked_validators(self):
-        filtered_df = self.validators[self.validators['activatedStake'] >= 1]
-        return filtered_df['host_id'].unique()
+        return self.validator_stakes['host_id'].unique()
+
+    def trim_host_ids(self):
+        self.validators['host_id'] = self.validators['host_id'].str[:8]
+
+    def trim_host_ids_staked(self):
+        self.validator_stakes['host_id'] = self.validator_stakes['host_id'].str[:8]
 
     def get_host_ids_first_n_chars(self, trimmed_validators, n):
         if n < 1:
-            print("ERROR: to few characters requests. defaulting to 8 chars")
+            print("ERROR: too few characters requests. defaulting to 8 chars")
             n = 8
         return trimmed_validators['host_id'].str[:n].unique()
 
@@ -107,6 +118,10 @@ class Validators:
     """
     def get_all(self):
         return self.validators
+
+    def get_all_staked(self):
+        return self.validator_stakes
+
 
     def get_validator_stake_map(self, n):
         # Truncate 'host_id' to first n characters and create a new column for it

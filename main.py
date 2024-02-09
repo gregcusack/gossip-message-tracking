@@ -5,6 +5,7 @@ from Validators import Validators
 from Stats import Stats
 from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
 from Crontab import Crontab
+from Coverage import Coverage
 from datetime import datetime
 from ReportMetrics import ReportMetrics
 
@@ -13,7 +14,12 @@ CHARS_TO_KEEP = 8
 if __name__ == "__main__":
     influx = GossipQueryInflux()
 
-    if sys.argv[1] == "crontab-loop":
+    if sys.argv[1] == "coverage":
+        coverage = Coverage()
+        coverage.run()
+
+    ### Run crontab loop over past 14 days
+    elif sys.argv[1] == "crontab-loop":
         print("------------------------------------------------------------")
         print(f"Running Crontab Loop at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
 
@@ -37,9 +43,10 @@ if __name__ == "__main__":
             ct.write_df_n_days_ago_to_file(i)
             ct.reset_dfs()
             print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
-        sys.exit(0)
 
-    if sys.argv[1] == "crontab":
+    ### Run Crontab. designed to run twice a day
+    ### Removes duplicates
+    elif sys.argv[1] == "crontab":
         print(f"Running Crontab at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         result = influx.query_last_day()
         data = influx.transform_gossip_crds_sample_results(result)
@@ -58,7 +65,7 @@ if __name__ == "__main__":
         print(ct.get_df_now_size())
         ct.write_df_now_to_file()
         print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
-        sys.exit(0)
+        # sys.exit(0)
 
     validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
     validators.load_gossip()
@@ -73,6 +80,7 @@ if __name__ == "__main__":
         host_set = influx.get_host_id_tags_from_query(result)
         non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(validators.get_host_ids_staked_validators(), host_set)
 
+    ### Plot message propagation by signature
     elif sys.argv[1] == "graph":
         percentage = float(sys.argv[2])
         hash = sys.argv[3] # could be origin or signature
@@ -100,6 +108,7 @@ if __name__ == "__main__":
         graph.configure_legend(hash, percentage)
         graph.save_plot()
 
+    ### Measure median ingress stake by origin
     elif sys.argv[1] == "ingress":
         num_origins = int(sys.argv[3])
         origins = validators.get_top_n_highest_staked_validators(num_origins)
@@ -123,12 +132,8 @@ if __name__ == "__main__":
         for stake_rank, origin in enumerate(origins):
             stats.plot_median_ingress_stake_for_origin(sorted_rows, origin)
             stats.plot_median_stake_over_host_stake_for_origin(sorted_rows, origin, stake_rank)
-        # sorted_list_by_host_id_stake = stats.sort_by_origin_then_host_id_stake(validator_stake_map)
-        # stats.plot_host_id_vs_median_stake(sorted_list_by_host_id_stake, num_origins)
 
-        # print(stats.sort_by_source_median_stake(validator_stake_map))
-
-
+    ### Get cummulative stake per bucket
     elif sys.argv[1] == "bucket":
         num_origins = int(sys.argv[3])
         origins = validators.get_top_n_highest_staked_validators(num_origins)
@@ -144,12 +149,11 @@ if __name__ == "__main__":
         sb.get_stake_cummulative_stake_percentage_per_bucket()
         sb.bucket_contents_to_file()
 
+    ### Get bucket from stake
     elif sys.argv[1] == "bucket_from_stake":
         stake = int(sys.argv[3]) # in SOL
         bucket = StakeBucket.get_stake_bucket(stake * LAMPORTS_PER_SOL)
         print(f"stake: {stake}, bucket: {bucket}")
-
-
 
         # print(sb.get_stake_bucket(1 * LAMPORTS_PER_SOL))
         # print(sb.get_stake_bucket(10 * LAMPORTS_PER_SOL))
