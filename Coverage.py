@@ -14,6 +14,8 @@ for each validator
         dict[entry.signature].insert(entry.host_id) #try to insert
         dict[entry.signature].insert(entry.from) # try to insert
 
+we also want to find the nodes that are not reporting metrics
+
 
 we also want to know stake distribution of coverage
 - but lets do this second. focus on coverage first
@@ -34,6 +36,8 @@ class Coverage:
         print("run")
         self.get_validators()
         print(self.validators.get_all())
+        self.get_metric_non_reporting_nodes()
+
         count = 0
         # loop over all host_ids in network
         for row in self.validators.get_all().itertuples():
@@ -82,3 +86,20 @@ class Coverage:
         # data is a list of GossipCrdsSample() data for all entries with "origin" as the origin
         return data
 
+    # we should write this to a file and keep it
+    def get_metric_non_reporting_nodes(self):
+        # query a day and find the host_ids
+        print("querying whole day")
+        results = self.influx.query_last_day()
+        data = self.influx.transform_query_results(results)
+        # data is a list of GossipCrdsSample
+        metric_non_reporting_nodes = set()
+        for entry in data:
+            if entry.host_id not in self.stake_map:
+                metric_non_reporting_nodes.add(entry.host_id)
+
+        print(f"non metric reporting nodes: {len(metric_non_reporting_nodes)}")
+        for host in metric_non_reporting_nodes:
+            print(host)
+
+        return metric_non_reporting_nodes
