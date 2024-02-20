@@ -29,11 +29,12 @@ class GossipQueryInflux():
 
     # use for just getting a bunch of data so we can find
     # the validators that do not report metrics
-    def query_all_push(self):
+    def query_all_push(self, start=14, stop=0):
         query = 'select \
             mean(\"all-push\") \
             FROM "' + self.database + '"."autogen"."cluster_info_crds_stats" \
-            WHERE time > now() - 14d GROUP BY time(6h), host_id'
+            WHERE time > now() - (' + str(start) + 'd + 1h) and time < now() - ' + str(stop) + 'd \
+            GROUP BY time(6h), host_id'
         return self.execute_query(query)
 
     def query_day_range(self, start, stop):

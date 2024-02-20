@@ -60,36 +60,38 @@ if __name__ == "__main__":
         print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         sys.exit(0)
 
-    percentage = float(sys.argv[2])
     validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
     validators.load_gossip()
     validators.load()
     validators.merge_stake_and_gossip()
     validators.sort(ascending=False)
 
-    trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
-
-    print("Number of validators: " + str(len(trimmed_validators)))
-
     if sys.argv[1] == "report-metrics":
+
         result = influx.query_all_push()
         # print(result)
         host_set = influx.get_host_id_tags_from_query(result)
         non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(validators.get_host_ids_staked_validators(), host_set)
 
-
-
     elif sys.argv[1] == "graph":
+        percentage = float(sys.argv[2])
         hash = sys.argv[3] # could be origin or signature
 
-        result = influx.get_data_by_signature(hash)
-        data = influx.transform_gossip_crds_sample_results(result)
-
         # get non_reporting nodes
-        push_results = influx.query_all_push()
+        if len(sys.argv) >= 6:
+            query_start_time = sys.argv[4]
+            query_end_time = sys.argv[5]
+            push_results = influx.query_all_push(query_start_time, query_end_time)
+        else:
+            push_results = influx.query_all_push()
         host_set = influx.get_host_id_tags_from_query(push_results)
         non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(validators.get_host_ids_staked_validators(), host_set)
 
+        trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
+        print(f"Number of validators that make up >= {percentage}% stake: {str(len(trimmed_validators))}")
+
+        result = influx.get_data_by_signature(hash)
+        data = influx.transform_gossip_crds_sample_results(result)
 
         graph = Graph()
         graph.build(data, color=True, nodes_to_color=validators.get_host_ids_first_n_chars(trimmed_validators, CHARS_TO_KEEP).tolist())
