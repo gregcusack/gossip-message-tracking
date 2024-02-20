@@ -27,6 +27,16 @@ class GossipQueryInflux():
         query = 'select "from", "signature", "origin", "host_id" FROM "' + self.database + '"."autogen"."gossip_crds_sample" WHERE time > now() - 14d'
         return self.execute_query(query)
 
+    # use for just getting a bunch of data so we can find
+    # the validators that do not report metrics
+    def query_all_push(self, start=14, stop=0):
+        query = 'select \
+            mean(\"all-push\") \
+            FROM "' + self.database + '"."autogen"."cluster_info_crds_stats" \
+            WHERE time > now() - (' + str(start) + 'd + 1h) and time < now() - ' + str(stop) + 'd \
+            GROUP BY time(6h), host_id'
+        return self.execute_query(query)
+
     def query_day_range(self, start, stop):
         query = 'select \
             "from", \
@@ -35,7 +45,6 @@ class GossipQueryInflux():
             "host_id" \
             FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
             WHERE time > now() - (' + str(start) + 'd + 1h) and time < now() - ' + str(stop) + 'd' # get 25 hours windows
-        print(query)
 
         return self.execute_query(query)
 
@@ -72,7 +81,7 @@ class GossipQueryInflux():
     to the graph.build(data) method
     TODO: should its own struct with each of these values
     """
-    def transform_query_results(self, result):
+    def transform_gossip_crds_sample_results(self, result):
         return [
             GossipCrdsSample(
                 timestamp=point['time'],
@@ -84,6 +93,11 @@ class GossipQueryInflux():
             for point in result.get_points()
         ]
 
+    def get_host_id_tags_from_query(self, result):
+        reporting_hosts = set()
+        reporting_hosts.update(point[1]['host_id'] for point in result.keys())
+        return reporting_hosts
+
     """
     This converts MULTIPLE query results into something consumable  by the Graph
     Must call this on the query result and pass in the resulting list
@@ -92,7 +106,7 @@ class GossipQueryInflux():
     def convert_query_results_to_tuple(self, results):
         data = []
         for result in results:
-            data.append(self.transform_query_results(result))
+            data.append(self.transform_gossip_crds_sample_results(result))
 
         return data
 

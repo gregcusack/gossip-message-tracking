@@ -6,6 +6,7 @@ from Stats import Stats
 from StakeBucket import StakeBucket, LAMPORTS_PER_SOL
 from Crontab import Crontab
 from datetime import datetime
+from ReportMetrics import ReportMetrics
 
 CHARS_TO_KEEP = 8
 
@@ -18,7 +19,7 @@ if __name__ == "__main__":
 
         for i in range(14, 0, -1):
             result = influx.query_day_range(i, i-1)
-            data = influx.transform_query_results(result)
+            data = influx.transform_gossip_crds_sample_results(result)
             ct = Crontab()
 
             ct.read_df_n_days_ago(i+1)
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     if sys.argv[1] == "crontab":
         print(f"Running Crontab at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         result = influx.query_last_day()
-        data = influx.transform_query_results(result)
+        data = influx.transform_gossip_crds_sample_results(result)
 
         ct = Crontab()
         ct.read_previous_df()
@@ -59,27 +60,43 @@ if __name__ == "__main__":
         print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         sys.exit(0)
 
-    percentage = float(sys.argv[2])
     validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
     validators.load_gossip()
     validators.load()
     validators.merge_stake_and_gossip()
     validators.sort(ascending=False)
 
-    trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
+    if sys.argv[1] == "report-metrics":
 
-    print("Number of validators: " + str(len(trimmed_validators)))
+        result = influx.query_all_push()
+        # print(result)
+        host_set = influx.get_host_id_tags_from_query(result)
+        non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(validators.get_host_ids_staked_validators(), host_set)
 
-    if sys.argv[1] == "graph":
+    elif sys.argv[1] == "graph":
+        percentage = float(sys.argv[2])
         hash = sys.argv[3] # could be origin or signature
 
+        # get non_reporting nodes
+        if len(sys.argv) >= 6:
+            query_start_time = sys.argv[4]
+            query_end_time = sys.argv[5]
+            push_results = influx.query_all_push(query_start_time, query_end_time)
+        else:
+            push_results = influx.query_all_push()
+        host_set = influx.get_host_id_tags_from_query(push_results)
+        non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(validators.get_host_ids_staked_validators(), host_set)
+
+        trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
+        print(f"Number of validators that make up >= {percentage}% stake: {str(len(trimmed_validators))}")
+
         result = influx.get_data_by_signature(hash)
-        data = influx.transform_query_results(result)
+        data = influx.transform_gossip_crds_sample_results(result)
 
         graph = Graph()
         graph.build(data, color=True, nodes_to_color=validators.get_host_ids_first_n_chars(trimmed_validators, CHARS_TO_KEEP).tolist())
         graph.cycle_exists()
-        graph.draw()
+        graph.draw(non_reporting_hosts=non_reporting_host_ids)
         graph.configure_legend(hash, percentage)
         graph.save_plot()
 
@@ -90,7 +107,7 @@ if __name__ == "__main__":
         origins = validators.get_host_ids_first_n_chars(origins, CHARS_TO_KEEP).tolist()
 
         result = influx.get_data_by_multiple_origins(origins)
-        data = influx.transform_query_results(result)
+        data = influx.transform_gossip_crds_sample_results(result)
 
         stats = Stats(data)
         validator_stake_map = validators.get_validator_stake_map(CHARS_TO_KEEP)

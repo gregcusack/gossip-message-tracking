@@ -5,6 +5,9 @@ import pygraphviz as pgv
 from networkx.drawing.nx_agraph import graphviz_layout
 from GossipCrdsSample import GossipCrdsSample
 
+RED='#FF2D2D' # node in cummulative stake > x%
+BLUE='#0064FF' # default color
+GREEN='#00C619' # nodes that do not report metrics
 
 class NodeStyle:
     def __init__(self, color, size):
@@ -21,7 +24,7 @@ class Graph:
     """
     data is of type GossipCrdsSample
     """
-    def build(self, data, color=False, nodes_to_color=None, special_style=NodeStyle('red', 700), default_style=NodeStyle('blue', 300)): #special_color='red', default_color='blue', special_size=700, default_size=300):
+    def build(self, data, color=False, nodes_to_color=None, special_style=NodeStyle(RED, 1000), default_style=NodeStyle(BLUE, 300)): #special_color='red', default_color='blue', special_size=700, default_size=300):
         for sample in data:
             if sample.source == None or sample.host_id == None:
                 print("ERROR: source or host is None!: " + str(sample.source) + ", " + str(sample.host_id))
@@ -45,15 +48,30 @@ class Graph:
 
 
 
-    def draw(self):
+    def draw(self, non_reporting_hosts=None):
         # plt.figure(figsize=(20,10))
         plt.figure(figsize=(200, 120)) # can use 200, 120 to get a little more spacing
         pos = graphviz_layout(self.G, prog='neato')  # This one also good
         # pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
         # pos = nx.nx_agraph.graphviz_layout(self.G, prog='dot')
 
-        colors = [self.node_styles.get(node, NodeStyle('blue', 100)).color for node in self.G.nodes()]
-        sizes = [self.node_styles.get(node, NodeStyle('blue', 100)).size for node in self.G.nodes()]
+        colors = []
+        sizes = []
+
+        for node in self.G.nodes():
+            # Default style
+            style = self.node_styles.get(node, NodeStyle(BLUE, 100))
+
+            # If non_reporting_hosts is specified and the node is in it, color it green
+            if non_reporting_hosts is not None and node in non_reporting_hosts:
+                colors.append(GREEN)  # Override color for non-reporting hosts
+            else:
+                colors.append(style.color)  # Use default or specified color
+
+            sizes.append(style.size)
+
+        # colors = [self.node_styles.get(node, NodeStyle('blue', 100)).color for node in self.G.nodes()]
+        # sizes = [self.node_styles.get(node, NodeStyle('blue', 100)).size for node in self.G.nodes()]
 
         nx.draw(self.G, pos=pos, node_color=colors, node_size=sizes, with_labels=True)
 
@@ -62,12 +80,11 @@ class Graph:
     """
     def configure_legend(self, signature, percentage):
         # Create a legend
-        red_patch = mpatches.Patch(color='red', label=f"Top {percentage}% of staked Nodes \n ({self.colored_count} found out of {len(self.nodes_to_color)} possible)")
-        blue_patch = mpatches.Patch(color='blue', label='All other Nodes')
-        plt.legend(handles=[red_patch, blue_patch], fontsize=100)
-        # plt.title("HEY", fontsize=30, loc="left")
+        red_patch = mpatches.Patch(color=RED, label=f"Top {percentage}% of staked Nodes \n ({self.colored_count} found out of {len(self.nodes_to_color)} possible)")
+        green_patch = mpatches.Patch(color=GREEN, label=f"Nodes that do NOT report metrics \n Large & green: node doesn't report metrics \n and is in top {percentage}% of staked nodes")
+        blue_patch = mpatches.Patch(color=BLUE, label='All other Nodes')
+        plt.legend(handles=[red_patch, green_patch, blue_patch], fontsize=100, loc='upper right')
         plt.title(f"{signature} message propagation. Highlighting top {percentage}% of nodes by stake", fontsize=100, loc="center", backgroundcolor='green', color='orange')
-        # plt.tight_layout()
 
     def show(self):
         plt.show()

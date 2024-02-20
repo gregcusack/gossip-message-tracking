@@ -75,6 +75,10 @@ class Validators:
     def get_host_ids(self):
         return self.validators['host_id'].unique()
 
+    def get_host_ids_staked_validators(self):
+        filtered_df = self.validators[self.validators['activatedStake'] >= 1]
+        return filtered_df['host_id'].unique()
+
     def get_host_ids_first_n_chars(self, trimmed_validators, n):
         if n < 1:
             print("ERROR: to few characters requests. defaulting to 8 chars")
