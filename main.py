@@ -69,7 +69,7 @@ if __name__ == "__main__":
 
     validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
     validators.load_gossip()
-    validators.load()
+    validators.load_stakes()
     validators.merge_stake_and_gossip()
     validators.sort(ascending=False)
 

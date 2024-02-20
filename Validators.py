@@ -82,7 +82,9 @@ class Validators:
         return self.validators['host_id'].unique()
 
     def get_host_ids_staked_validators(self):
-        return self.validator_stakes['host_id'].unique()
+        # return self.validator_stakes['host_id'].unique()
+        filtered_df = self.validators[self.validators['activatedStake'] > 0]
+        return filtered_df['host_id'].unique()
 
     def trim_host_ids(self):
         self.validators['host_id'] = self.validators['host_id'].str[:8]
