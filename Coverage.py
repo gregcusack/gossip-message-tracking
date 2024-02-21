@@ -28,6 +28,7 @@ from CoverageStats import MessageSignatureSets, CoverageStatsByOrigin, CoverageB
 from ReportMetrics import ReportMetrics
 from Graph import Graph
 from GossipCrdsSample import GossipCrdsSampleBySignature
+import pandas as pd
 import sys
 
 class Coverage:
@@ -38,9 +39,26 @@ class Coverage:
     def run(self):
         self.get_validators()
         non_reporting_staked_host_ids = self.get_metric_non_reporting_nodes()
-        # let's just pick an origin to start
-        origin = 'CW9C7HBw'
-        # origin = '8n4pc4sC'
+
+        # origins_to_run = self.validators.get_top_n_host_ids_by_stake(5)
+        origins_to_run = self.validators.get_all_staked_host_ids()
+        print(origins_to_run)
+        print(f"Running for {len(origins_to_run)} origins")
+
+        origins = []
+        mean_coverages = []
+        median_coverages = []
+        for origin in origins_to_run:
+            print(f"Currently running origin: {origin}")
+            mean_coverage, median_coverage = self.run_for_origin(origin, non_reporting_staked_host_ids)
+
+            origins.append(origin)
+            mean_coverages.append(mean_coverage)
+            median_coverages.append(median_coverage)
+
+        self.write_aggregate_coverage_stats_to_file(origins, mean_coverages, median_coverages)
+
+    def run_for_origin(self, origin, non_reporting_staked_host_ids):
         origin_data = self.query_origin_data(origin)
         origin_data_by_signature = self.group_origin_data_by_signature(origin_data)
         origin_rank = self.validators.get_rank_by_origin(origin)
@@ -59,6 +77,9 @@ class Coverage:
 
         print(f"Mean Stats for origin {origin}: {mean_coverage}")
         print(f"Median Stats for origin {origin}: {median_coverage}")
+
+        return mean_coverage, median_coverage
+
 
     """
     data of type [GossipCrdsSample]
@@ -247,3 +268,30 @@ class Coverage:
         ### All non-metric reporting host_ids in-degree of 0 AND their descendants
         self.possibly_connected_nodes_set = self.merge_descendent_set_with_host_ids_without_incoming_edges(descendents_from_non_reporting_in_degree_zero_hosts, host_ids_without_incoming_edges)
         print(f"possibly_connected_nodes_set len: {len(self.possibly_connected_nodes_set)}")
+
+    def write_aggregate_coverage_stats_to_file(self, origins, mean_coverages, median_coverages):
+        # Initialize an empty DataFrame
+        final_df = pd.DataFrame()
+
+        # Loop through the arrays
+        for origin, mean, median in zip(origins, mean_coverages, median_coverages):
+            # Extracting attributes from CoverageBySignature instances
+            data = {
+                'origin': [origin, origin],
+                'AggregateType': ['Mean', 'Median'],
+                'staked_length': [mean.staked_length, median.staked_length],
+                'unstaked_length': [mean.unstaked_length, median.unstaked_length],
+                'staked_coverage': [f"{mean.staked_coverage:.3f}", f"{median.staked_coverage:.3f}"],
+                'overall_coverage': [f"{mean.overall_coverage:.3f}", f"{median.overall_coverage:.3f}"],
+                'fully_connected_coverage': [f"{mean.fully_connected_coverage:.3f}", f"{median.fully_connected_coverage:.3f}"],
+                'possible_peak_connected_coverage': [f"{mean.possible_peak_connected_coverage:.3f}", f"{median.possible_peak_connected_coverage:.3f}"],
+                'staked_fully_connected_coverage': [f"{mean.staked_fully_connected_coverage:.3f}", f"{median.staked_fully_connected_coverage:.3f}"],
+                'staked_possible_peak_connected_coverage': [f"{mean.staked_possible_peak_connected_coverage:.3f}", f"{median.staked_possible_peak_connected_coverage:.3f}"]
+            }
+            # Temporary DataFrame for the current set of values
+            temp_df = pd.DataFrame(data)
+
+            # Append the temporary DataFrame to the final DataFrame
+            final_df = pd.concat([final_df, temp_df], ignore_index=True)
+
+        final_df.to_csv("coverage.csv", index=False)

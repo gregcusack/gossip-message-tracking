@@ -141,6 +141,14 @@ class Validators:
         self.sort_staked()
         return self.validator_stakes.loc[self.validator_stakes['host_id'].str[:8] == origin].index[0]
 
+    def get_top_n_host_ids_by_stake(self, n):
+        self.sort_staked()
+        return self.validator_stakes.head(n)['host_id'].str[:8].tolist()
+
+    def get_all_staked_host_ids(self):
+        self.sort_staked()
+        return self.validator_stakes['host_id'].str[:8].to_list()
+
     # def get_validator_stake_map(self, n):
     #     trimmed_host_ids = self.get_host_ids_first_n_chars(self.validators, n)
     #     return trimmed_host_ids.set_index('host_id')['activatedStake'].to_dict()
