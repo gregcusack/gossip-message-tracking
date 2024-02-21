@@ -54,7 +54,7 @@ class Validators:
         self.validators = self.validators.reset_index(drop=True)
         self.validators.rename(columns = {'identityPubkey':'host_id'}, inplace = True)
 
-    def sort_staked(self, ascending):
+    def sort_staked(self, ascending=False):
         self.validator_stakes = self.validator_stakes.sort_values(by='activatedStake', ascending=ascending)
         self.validator_stakes = self.validator_stakes.reset_index(drop=True)
         self.validator_stakes.rename(columns = {'identityPubkey':'host_id'}, inplace = True)
@@ -90,7 +90,7 @@ class Validators:
         self.validators['host_id'] = self.validators['host_id'].str[:8]
 
     def trim_host_ids_staked(self):
-        self.validator_stakes['host_id'] = self.validator_stakes['host_id'].str[:8]
+        return self.validator_stakes['host_id'].str[:8]
 
     def get_host_ids_first_n_chars(self, trimmed_validators, n):
         if n < 1:
@@ -136,6 +136,10 @@ class Validators:
         self.validators.drop(columns=['truncated_host_id'], inplace=True)
 
         return stake_map
+
+    def get_rank_by_origin(self, origin):
+        self.sort_staked()
+        return self.validator_stakes.loc[self.validator_stakes['host_id'].str[:8] == origin].index[0]
 
     # def get_validator_stake_map(self, n):
     #     trimmed_host_ids = self.get_host_ids_first_n_chars(self.validators, n)

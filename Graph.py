@@ -22,7 +22,7 @@ class Graph:
         self.nodes_to_color = 0
 
     """
-    data is of type GossipCrdsSample
+    data is of type [GossipCrdsSample]
     """
     def build(self, data, color=False, nodes_to_color=None, special_style=NodeStyle(RED, 1000), default_style=NodeStyle(BLUE, 300)): #special_color='red', default_color='blue', special_size=700, default_size=300):
         for sample in data:
@@ -47,14 +47,7 @@ class Graph:
             print("Total Nodes colored: {} out of {} top N% of nodes by stake".format(self.colored_count, len(nodes_to_color)))
 
 
-
-    def draw(self, non_reporting_hosts=None):
-        # plt.figure(figsize=(20,10))
-        plt.figure(figsize=(200, 120)) # can use 200, 120 to get a little more spacing
-        pos = graphviz_layout(self.G, prog='neato')  # This one also good
-        # pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
-        # pos = nx.nx_agraph.graphviz_layout(self.G, prog='dot')
-
+    def configure_node_styles(self, non_reporting_hosts=None):
         colors = []
         sizes = []
 
@@ -70,8 +63,16 @@ class Graph:
 
             sizes.append(style.size)
 
-        # colors = [self.node_styles.get(node, NodeStyle('blue', 100)).color for node in self.G.nodes()]
-        # sizes = [self.node_styles.get(node, NodeStyle('blue', 100)).size for node in self.G.nodes()]
+        return colors, sizes
+
+    def draw(self, non_reporting_hosts=None):
+        # plt.figure(figsize=(20,10))
+        plt.figure(figsize=(200, 120)) # can use 200, 120 to get a little more spacing
+        pos = graphviz_layout(self.G, prog='neato')  # This one also good
+        # pos = graphviz_layout(self.G, prog='dot')  # THIS ONE IS GREAT
+        # pos = nx.nx_agraph.graphviz_layout(self.G, prog='dot')
+
+        colors, sizes = self.configure_node_styles(non_reporting_hosts)
 
         nx.draw(self.G, pos=pos, node_color=colors, node_size=sizes, with_labels=True)
 
@@ -85,6 +86,19 @@ class Graph:
         blue_patch = mpatches.Patch(color=BLUE, label='All other Nodes')
         plt.legend(handles=[red_patch, green_patch, blue_patch], fontsize=100, loc='upper right')
         plt.title(f"{signature} message propagation. Highlighting top {percentage}% of nodes by stake", fontsize=100, loc="center", backgroundcolor='green', color='orange')
+
+
+    def get_nodes_without_incoming_edges(self, non_reporting_host_ids):
+        return {host_id for host_id in non_reporting_host_ids if self.G.in_degree(host_id) == 0}
+
+    def path_exists(self, source_node, end_node):
+        return nx.has_path(self.G, source_node, end_node)
+
+    """
+    for a specific node, get all the nodes downstream from it
+    """
+    def get_node_descendants(self, node):
+        return nx.descendants(self.G, node)
 
     def show(self):
         plt.show()

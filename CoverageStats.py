@@ -7,7 +7,7 @@ bucket distribution of nodes Rx message
 """
 
 
-class Sets:
+class MessageSignatureSets:
     def __init__(self):
         self.staked = set() # staked nodes
         self.unstaked = set() # unstaked nodes only
@@ -25,8 +25,14 @@ class Sets:
     def add(self, host_id, stake_map):
         if host_id in stake_map:
             if stake_map.get(host_id) == 0:
+                # print("unstaked")
+                # if host_id in self.unstaked:
+                    # print("already in")
                 self.unstaked.add(host_id)
             else:
+                # print("staked")
+                # if host_id in self.staked:
+                #     print("already in")
                 self.staked.add(host_id)
         else:
             self.unknown.add(host_id)
@@ -34,7 +40,7 @@ class Sets:
 class CoverageStats:
     def __init__(self):
         print("cov stats")
-        self.sets = Sets()
-        
+        self.sets = MessageSignatureSets()
+
 
 
