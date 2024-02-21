@@ -44,6 +44,7 @@ class Coverage:
         origins_to_run = self.validators.get_all_staked_host_ids()
         print(origins_to_run)
         print(f"Running for {len(origins_to_run)} origins")
+        # origins_to_run = ['BSVckjdW']
 
         origins = []
         mean_coverages = []

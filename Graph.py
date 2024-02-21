@@ -98,7 +98,12 @@ class Graph:
     for a specific node, get all the nodes downstream from it
     """
     def get_node_descendants(self, node):
-        return nx.descendants(self.G, node)
+        try:
+            res = nx.descendants(self.G, node)
+        except nx.exception.NetworkXError as e:
+            res = set()
+            print(e)
+        return res
 
     def show(self):
         plt.show()
