@@ -24,7 +24,7 @@ we also want to know stake distribution of coverage
 
 from Validators import Validators
 from GossipQueryInflux import GossipQueryInflux
-from CoverageStats import MessageSignatureSets, CoverageStats
+from CoverageStats import MessageSignatureSets, CoverageStatsByOrigin, CoverageBySignature
 from ReportMetrics import ReportMetrics
 from Graph import Graph
 from GossipCrdsSample import GossipCrdsSampleBySignature
@@ -33,6 +33,7 @@ import sys
 class Coverage:
     def __init__(self):
         self.influx = GossipQueryInflux()
+        self.coverage_stats_by_origin = {} # origin -> CoverageStatsByOrigin mapping
 
     def run(self):
         self.get_validators()
@@ -67,20 +68,22 @@ class Coverage:
         for host_id in self.possibly_connected_nodes_set:
             possible_connected_node_signature_sets.add(host_id, self.stake_map)
 
-        # This is all validators that received the message (including via pull)
-        # includes disconnected nodes as well
-        print(f"stake rank: {origin_rank}, "
-                f"origin: {origin}, "
-                f"sig: {signature}, "
-                f"stake_len: {gossip_data_by_signature_sets.staked_len()}, "
-                f"unstaked_len: {gossip_data_by_signature_sets.unstaked_len()}, "
-                f"staked_coverage: {gossip_data_by_signature_sets.staked_len()/len(self.validators.get_all_staked())}, "
-                f"overall_coverage: {gossip_data_by_signature_sets.length_all()/len(self.stake_map)}, "
-                f"fully_connected_coverage: {len(self.descendants_from_origin)/len(self.stake_map)}, "
-                f"possible_peak_connected_coverage: {(len(self.possibly_connected_nodes_set) + len(self.descendants_from_origin))/len(self.stake_map)}, "
-                f"staked_fully_connected_coverage: {len(self.descendants_from_origin)/len(self.validators.get_all_staked())}, "
-                f"staked_possible_peak_connected_coverage: {(len(self.possibly_connected_nodes_set) + len(self.descendants_from_origin))/len(self.validators.get_all_staked())}")
+        self.coverage_stats_by_origin[origin] = CoverageStatsByOrigin(origin, origin_rank)
+        coverage_stats_by_signature = CoverageBySignature(
+            signature=signature,
+            staked_length=gossip_data_by_signature_sets.staked_len(),
+            unstaked_length=gossip_data_by_signature_sets.unstaked_len(),
+            staked_coverage=gossip_data_by_signature_sets.staked_len()/len(self.validators.get_all_staked()),
+            overall_coverage=gossip_data_by_signature_sets.length_all()/len(self.stake_map),
+            fully_connected_coverage=len(self.descendants_from_origin)/len(self.stake_map),
+            possible_peak_connected_coverage=(len(self.possibly_connected_nodes_set) + len(self.descendants_from_origin))/len(self.stake_map),
+            staked_fully_connected_coverage=len(self.descendants_from_origin)/len(self.validators.get_all_staked()),
+            staked_possible_peak_connected_coverage=(len(self.possibly_connected_nodes_set) + len(self.descendants_from_origin))/len(self.validators.get_all_staked()),
+        )
 
+        self.coverage_stats_by_origin[origin].insert(coverage_stats_by_signature)
+
+        print(self.coverage_stats_by_origin[origin].get(signature))
 
     def calculate_coverage(self):
         count = 0
@@ -206,10 +209,6 @@ class Coverage:
         for host_id in host_ids_without_incoming_edges:
             descendants = self.graph.get_node_descendants(host_id)
             reachable_from_source.update(descendants)
-
-        print(f"len of nodes descended from host_ids: {len(reachable_from_source)}")
-        # print(f"all nodes descended from non-reporting and in degree 0 nodes: {reachable_from_source}")
-
         return reachable_from_source
 
     """
@@ -239,6 +238,6 @@ class Coverage:
         self.descendants_from_origin = self.get_descendants_from_origin(origin)
         print(f"descendants_from_origin len: {len(self.descendants_from_origin)}")
 
-        ### All non-metric reporting host_ids without incoming edges AND their descendants
+        ### All non-metric reporting host_ids in-degree of 0 AND their descendants
         self.possibly_connected_nodes_set = self.merge_descendent_set_with_host_ids_without_incoming_edges(descendents_from_non_reporting_in_degree_zero_hosts, host_ids_without_incoming_edges)
         print(f"possibly_connected_nodes_set len: {len(self.possibly_connected_nodes_set)}")
