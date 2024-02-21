@@ -49,7 +49,7 @@ class Coverage:
         # iterate through all of the signatures for a specific origin
         for signature in origin_data_by_signature.keys():
             print(f"------------ signature: {signature} ------------")
-            data = self.query_by_signature(signature) # TODO: I think we can get data from origin_data_by_signature[signature]
+            data = origin_data_by_signature[signature]
             # find connectivity of nodes and descendants
             self.run_graph_analysis(origin, data, non_reporting_staked_host_ids)
             self.calculate_coverage_by_origin_and_signature(origin, signature, data)
