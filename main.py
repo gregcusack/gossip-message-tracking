@@ -78,7 +78,7 @@ if __name__ == "__main__":
         result = influx.query_all_push()
         # print(result)
         host_set = influx.get_host_id_tags_from_query(result)
-        non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(validators.get_host_ids_staked_validators(), host_set)
+        non_reporting_host_ids = ReportMetrics.identify_non_reporting_staked_hosts(validators.get_host_ids_staked_validators(), host_set)
 
     ### Plot message propagation by signature
     elif sys.argv[1] == "graph":
@@ -93,7 +93,7 @@ if __name__ == "__main__":
         else:
             push_results = influx.query_all_push()
         host_set = influx.get_host_id_tags_from_query(push_results)
-        non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(validators.get_host_ids_staked_validators(), host_set)
+        non_reporting_host_ids = ReportMetrics.identify_non_reporting_staked_hosts(validators.get_host_ids_staked_validators(), host_set)
 
         trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
         print(f"Number of validators that make up >= {percentage}% stake: {str(len(trimmed_validators))}")

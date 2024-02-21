@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import numpy as np
 
 """
 Median Coverage
@@ -96,3 +97,48 @@ class CoverageStatsByOrigin:
 
     def get(self, signature):
         return self.stats_by_signature[signature]
+
+    def get_signatures(self):
+        return self.stats_by_signature.keys()
+
+    def get_aggregate_coverage_stats(self):
+        # Calculate mean and median coverages
+        mean_coverage = self.calculate_aggregate_coverages(np.mean)
+        median_coverage = self.calculate_aggregate_coverages(np.median)
+
+        return mean_coverage, median_coverage
+
+    def calculate_aggregate_coverages(self, agg_func):
+        # Initialize lists to store coverage values
+        staked_lengths = []
+        unstaked_lengths = []
+        staked_coverages = []
+        overall_coverages = []
+        fully_connected_coverages = []
+        possible_peak_connected_coverages = []
+        staked_fully_connected_coverages = []
+        staked_possible_peak_connected_coverages = []
+
+        # Accumulate data
+        for stats in self.stats_by_signature.values():
+            staked_lengths.append(stats.staked_length)
+            unstaked_lengths.append(stats.unstaked_length)
+            staked_coverages.append(stats.staked_coverage)
+            overall_coverages.append(stats.overall_coverage)
+            fully_connected_coverages.append(stats.fully_connected_coverage)
+            possible_peak_connected_coverages.append(stats.possible_peak_connected_coverage)
+            staked_fully_connected_coverages.append(stats.staked_fully_connected_coverage)
+            staked_possible_peak_connected_coverages.append(stats.staked_possible_peak_connected_coverage)
+
+        # Calculate aggregate values using the specified aggregation function (np.mean or np.median)
+        return CoverageBySignature(
+            f"Aggregate signature stats:",
+            int(agg_func(staked_lengths)),
+            int(agg_func(unstaked_lengths)),
+            agg_func(staked_coverages),
+            agg_func(overall_coverages),
+            agg_func(fully_connected_coverages),
+            agg_func(possible_peak_connected_coverages),
+            agg_func(staked_fully_connected_coverages),
+            agg_func(staked_possible_peak_connected_coverages)
+        )

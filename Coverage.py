@@ -37,26 +37,33 @@ class Coverage:
 
     def run(self):
         self.get_validators()
-        non_reporting_host_ids = self.get_metric_non_reporting_nodes()
+        non_reporting_staked_host_ids = self.get_metric_non_reporting_nodes()
         # let's just pick an origin to start
         origin = 'CW9C7HBw'
         # origin = '8n4pc4sC'
         origin_data = self.query_origin_data(origin)
         origin_data_by_signature = self.group_origin_data_by_signature(origin_data)
+        origin_rank = self.validators.get_rank_by_origin(origin)
+        self.coverage_stats_by_origin[origin] = CoverageStatsByOrigin(origin, origin_rank)
 
-        signature_0 = next(iter(origin_data_by_signature.keys())) #TODO: change to all and put in loop
-        print(f"signature: {signature_0}")
-        data = self.query_by_signature(signature_0)
+        # iterate through all of the signatures for a specific origin
+        for signature in origin_data_by_signature.keys():
+            print(f"------------ signature: {signature} ------------")
+            data = self.query_by_signature(signature) # TODO: I think we can get data from origin_data_by_signature[signature]
+            # find connectivity of nodes and descendants
+            self.run_graph_analysis(origin, data, non_reporting_staked_host_ids)
+            self.calculate_coverage_by_origin_and_signature(origin, signature, data)
 
-        # find connectivity of nodes and descendants
-        self.run_graph_analysis(origin, data, non_reporting_host_ids)
-        self.calculate_coverage_by_origin_and_signature(origin, signature_0, data)
+        print(f"all signatures from origin: {self.coverage_stats_by_origin[origin].get_signatures()}")
+        mean_coverage, median_coverage = self.coverage_stats_by_origin[origin].get_aggregate_coverage_stats()
+
+        print(f"Mean Stats for origin {origin}: {mean_coverage}")
+        print(f"Median Stats for origin {origin}: {median_coverage}")
 
     """
     data of type [GossipCrdsSample]
     """
     def calculate_coverage_by_origin_and_signature(self, origin, signature, data):
-        origin_rank = self.validators.get_rank_by_origin(origin)
         gossip_data_by_signature_sets = MessageSignatureSets()
         for entry in data:
             gossip_data_by_signature_sets.add(entry.source, self.stake_map)
@@ -68,7 +75,6 @@ class Coverage:
         for host_id in self.possibly_connected_nodes_set:
             possible_connected_node_signature_sets.add(host_id, self.stake_map)
 
-        self.coverage_stats_by_origin[origin] = CoverageStatsByOrigin(origin, origin_rank)
         coverage_stats_by_signature = CoverageBySignature(
             signature=signature,
             staked_length=gossip_data_by_signature_sets.staked_len(),
@@ -82,8 +88,6 @@ class Coverage:
         )
 
         self.coverage_stats_by_origin[origin].insert(coverage_stats_by_signature)
-
-        print(self.coverage_stats_by_origin[origin].get(signature))
 
     def calculate_coverage(self):
         count = 0
@@ -114,8 +118,6 @@ class Coverage:
                         f"unstaked_len: {node_set.unstaked_len()}, "
                         f"staked_coverage: {node_set.staked_len()/len(self.validators.get_all_staked())}, "
                         f"overall_coverage: {node_set.length_all()/len(self.stake_map)}")
-            # if count == 4:
-            #     sys.exit(0)
 
     def get_validators(self):
         self.validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
@@ -142,6 +144,10 @@ class Coverage:
     def query_origin_data(self, origin):
         return self.influx.get_data_by_single_origin(origin)
 
+    """
+    origin_data: type ResultSet (influx query result)
+    returns a dict: signature -> GossipCrdsSample
+    """
     def group_origin_data_by_signature(self, origin_data):
         data_by_signature = GossipCrdsSampleBySignature()
         return data_by_signature.process_data(origin_data)
@@ -155,9 +161,8 @@ class Coverage:
     def get_metric_non_reporting_nodes(self):
         push_results = self.influx.query_all_push()
         host_set = self.influx.get_host_id_tags_from_query(push_results)
-        non_reporting_host_ids = ReportMetrics.identify_non_reporting_hosts(self.validators.get_host_ids_staked_validators(), host_set)
-        print(f"non metric reporting nodes: {len(non_reporting_host_ids)}")
-        return non_reporting_host_ids
+        non_reporting_staked_host_ids = ReportMetrics.identify_non_reporting_staked_hosts(self.validators.get_host_ids_staked_validators(), host_set)
+        return non_reporting_staked_host_ids
 
     """
     data is of type [CrdsGossipSample]
@@ -172,7 +177,8 @@ class Coverage:
     def get_host_ids_without_incoming_edges(self, non_reporting_host_ids, origin):
         host_ids_without_incoming_edges = self.graph.get_nodes_without_incoming_edges(non_reporting_host_ids)
         host_ids_without_incoming_edges.discard(origin)
-        print(f"Non-metric-reporting host_ids without incoming edges length: {len(host_ids_without_incoming_edges)}, values: {host_ids_without_incoming_edges}")
+        print(f"Non-metric-reporting host_ids without incoming edges length: {len(host_ids_without_incoming_edges)}")
+        # print(f"Non-metric-reporting host_ids without incoming edges values: {host_ids_without_incoming_edges}")
         return host_ids_without_incoming_edges
 
     def get_descendants_from_origin(self, origin):
