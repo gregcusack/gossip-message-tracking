@@ -370,7 +370,7 @@ class Coverage:
         plt.yticks(ticks=y_ticks, labels=y_labels)
 
         plt.title(f'{stat_type} Coverage by Origin', fontsize=125)
-        plt.xlabel('Origin', fontsize=100)
+        plt.xlabel('Origin (Sorted by Stake - Descending)', fontsize=100)
         plt.ylabel('Coverage', fontsize=100)
         plt.xticks(rotation=90)  # Rotate the x-axis labels for better readability
         plt.legend(fontsize=25)
