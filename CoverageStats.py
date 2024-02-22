@@ -28,14 +28,8 @@ class MessageSignatureSets:
     def add(self, host_id, stake_map):
         if host_id in stake_map:
             if stake_map.get(host_id) == 0:
-                # print("unstaked")
-                # if host_id in self.unstaked:
-                    # print("already in")
                 self.unstaked.add(host_id)
             else:
-                # print("staked")
-                # if host_id in self.staked:
-                #     print("already in")
                 self.staked.add(host_id)
         else:
             self.unknown.add(host_id)

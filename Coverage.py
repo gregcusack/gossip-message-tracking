@@ -29,7 +29,8 @@ from ReportMetrics import ReportMetrics
 from Graph import Graph
 from GossipCrdsSample import GossipCrdsSampleBySignature
 import pandas as pd
-import sys
+import numpy as np
+import os
 
 class Coverage:
     def __init__(self):
@@ -41,27 +42,23 @@ class Coverage:
         non_reporting_staked_host_ids = self.get_metric_non_reporting_nodes()
 
         # origins_to_run = self.validators.get_top_n_host_ids_by_stake(5)
-        origins_to_run = self.validators.get_all_staked_host_ids()
+        # origins_to_run = self.validators.get_all_staked_host_ids()
+        origins_to_run = self.validators.get_all_entries_after_host_id('GafF2qoG')
         print(origins_to_run)
-        print(f"Running for {len(origins_to_run)} origins")
-        # origins_to_run = ['BSVckjdW']
+        # print(f"Running for {len(origins_to_run)} origins")
+        # origins_to_run = ['GafF2qoG']
 
-        origins = []
-        mean_coverages = []
-        median_coverages = []
         for origin in origins_to_run:
             print(f"Currently running origin: {origin}")
             mean_coverage, median_coverage = self.run_for_origin(origin, non_reporting_staked_host_ids)
-
-            origins.append(origin)
-            mean_coverages.append(mean_coverage)
-            median_coverages.append(median_coverage)
-
-        self.write_aggregate_coverage_stats_to_file(origins, mean_coverages, median_coverages)
+            self.write_aggregate_coverage_stat_to_file(origin, mean_coverage, median_coverage)
 
     def run_for_origin(self, origin, non_reporting_staked_host_ids):
         origin_data = self.query_origin_data(origin)
         origin_data_by_signature = self.group_origin_data_by_signature(origin_data)
+        # check if data returned from influx is empty
+        if len(origin_data_by_signature) == 0:
+            return self.return_empty_coverage_stats_by_signature()
         origin_rank = self.validators.get_rank_by_origin(origin)
         self.coverage_stats_by_origin[origin] = CoverageStatsByOrigin(origin, origin_rank)
 
@@ -270,6 +267,39 @@ class Coverage:
         self.possibly_connected_nodes_set = self.merge_descendent_set_with_host_ids_without_incoming_edges(descendents_from_non_reporting_in_degree_zero_hosts, host_ids_without_incoming_edges)
         print(f"possibly_connected_nodes_set len: {len(self.possibly_connected_nodes_set)}")
 
+    def write_aggregate_coverage_stat_to_file(self, origin, mean_coverage, median_coverage):
+         # Convert the CoverageBySignature instances to dictionaries, excluding 'signature'
+        mean_dict = {k: v for k, v in vars(mean_coverage).items() if k != 'signature'}
+        median_dict = {k: v for k, v in vars(median_coverage).items() if k != 'signature'}
+
+        # Add the origin information to the dictionaries
+        mean_dict['origin'] = origin
+        median_dict['origin'] = origin
+
+        # Create a DataFrame from the dictionaries
+        df = pd.DataFrame([mean_dict, median_dict])
+        df.index = ["Mean", "Median"]
+        df.index.name = "AggregateType"
+
+        # Reset the index to turn AggregateType into a column
+        df.reset_index(inplace=True)
+
+        # Reorder columns to have 'origin' as the first column, followed by 'AggregateType'
+        # The rest of the column order remains as is
+        column_order = ['origin', 'AggregateType'] + [col for col in df.columns if col not in ['origin', 'AggregateType']]
+        df = df[column_order]
+
+        # Apply formatting: limit float columns to 3 decimal places by converting to strings
+        for col in df.select_dtypes(include=['float']).columns:
+            df[col] = df[col].apply(lambda x: f"{x:.3f}")
+
+        file_path = "coverage-v2.csv"
+
+        # Check if the file exists to determine if we need to write headers
+        file_exists = os.path.isfile(file_path)
+        df.to_csv(file_path, mode='a', header=not file_exists, index=False)
+
+
     def write_aggregate_coverage_stats_to_file(self, origins, mean_coverages, median_coverages):
         # Initialize an empty DataFrame
         final_df = pd.DataFrame()
@@ -296,3 +326,8 @@ class Coverage:
             final_df = pd.concat([final_df, temp_df], ignore_index=True)
 
         final_df.to_csv("coverage.csv", index=False)
+
+    def return_empty_coverage_stats_by_signature(self):
+            mean_coverage = CoverageBySignature("zero data", np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+            median_coverage = CoverageBySignature("zero data", np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
+            return mean_coverage, median_coverage

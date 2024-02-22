@@ -149,6 +149,11 @@ class Validators:
         self.sort_staked()
         return self.validator_stakes['host_id'].str[:8].to_list()
 
-    # def get_validator_stake_map(self, n):
-    #     trimmed_host_ids = self.get_host_ids_first_n_chars(self.validators, n)
-    #     return trimmed_host_ids.set_index('host_id')['activatedStake'].to_dict()
+    """
+    Returns all entries in the DataFrame that come after the given host_id.
+    """
+    def get_all_entries_after_host_id(self, host_id):
+        self.sort_staked()
+        if host_id in self.validator_stakes['host_id'].str[:8].values:
+            index = self.validator_stakes.index[self.validator_stakes['host_id'].str[:8] == host_id].tolist()[0]  # Get the index of the host_id
+            return self.validator_stakes['host_id'].str[:8].iloc[index + 1:].to_list()  # Return all rows after the index
