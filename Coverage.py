@@ -28,6 +28,7 @@ from CoverageStats import MessageSignatureSets, CoverageStatsByOrigin, CoverageB
 from ReportMetrics import ReportMetrics
 from Graph import Graph
 from GossipCrdsSample import GossipCrdsSampleBySignature
+import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import os
@@ -37,7 +38,7 @@ class Coverage:
         self.influx = GossipQueryInflux()
         self.coverage_stats_by_origin = {} # origin -> CoverageStatsByOrigin mapping
 
-    def run(self):
+    def run_data_collection(self):
         self.get_validators()
         non_reporting_staked_host_ids = self.get_metric_non_reporting_nodes()
 
@@ -331,3 +332,48 @@ class Coverage:
             mean_coverage = CoverageBySignature("zero data", np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
             median_coverage = CoverageBySignature("zero data", np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan)
             return mean_coverage, median_coverage
+
+    def plot_all(self, filepath):
+        df = pd.read_csv(filepath)
+        mean_df = df[df['AggregateType'] == 'Mean']
+        median_df = df[df['AggregateType'] == 'Median']
+
+        self.plot_stat(mean_df, 'Mean')
+        self.plot_stat(median_df, 'Median')
+
+    def plot_stat(self, df, stat_type):
+        plt.figure(figsize=(200, 60))
+        for column in ['staked_coverage', 'overall_coverage', 'fully_connected_coverage',
+                   'possible_peak_connected_coverage', 'staked_fully_connected_coverage',
+                   'staked_possible_peak_connected_coverage']:
+
+            # plot all origins, but if origin has NaN data, just leave that y value blank
+            origins = df['origin'].unique()
+            y_values = []
+            for origin in origins:
+                # Extract the row for the current origin and metric; handle NaN by not plotting a point
+                value = df[df['origin'] == origin][column].values
+                if len(value) > 0 and not np.isnan(value[0]):
+                    y_values.append(value[0])
+                else:
+                    y_values.append(np.nan)  # Keep NaN in the list to avoid plotting but maintain the x-axis position
+
+            plt.plot(origins, y_values, marker='o', label=column, linestyle='-')
+
+
+        plt.tick_params(axis='y', labelsize=80)
+        plt.grid(axis='y')
+        plt.ylim(0, 1) # y limit to 1
+
+        y_ticks = np.arange(0, 1.05, 0.05)  # Grid lines at every 0.05
+        y_labels = [f"{x:.1f}" if x in np.arange(0, 1.1, 0.2) else "" for x in y_ticks]  # Label only at 0, 0.2, ..., 1.0
+        plt.yticks(ticks=y_ticks, labels=y_labels)
+
+        plt.title(f'{stat_type} Coverage by Origin', fontsize=125)
+        plt.xlabel('Origin', fontsize=100)
+        plt.ylabel('Coverage', fontsize=100)
+        plt.xticks(rotation=90)  # Rotate the x-axis labels for better readability
+        plt.legend(fontsize=25)
+        plt.margins(x=0.005, tight=True)
+        plt.savefig(f'plots/{stat_type}_coverage_by_origin.png')
+        plt.show()

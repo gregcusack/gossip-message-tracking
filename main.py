@@ -16,7 +16,10 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "coverage":
         coverage = Coverage()
-        coverage.run()
+        if sys.argv[2] == "collect":
+            coverage.run_data_collection()
+        elif sys.argv[2] == "plot":
+            coverage.plot_all('coverage-v2-copy-v2.csv')
 
     ### Run crontab loop over past 14 days
     elif sys.argv[1] == "crontab-loop":
