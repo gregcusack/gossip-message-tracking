@@ -28,7 +28,7 @@ class Validators:
         self.path = path_to_stake_file
         self.path_gossip = path_to_gossip_file
 
-    def load(self):
+    def load_stakes(self):
         raw_data = json.load(open(self.path))
         stakes = pd.DataFrame(raw_data["validators"])
         self.validator_stakes = stakes.drop(stake_columns_to_drop, axis=1)
@@ -54,6 +54,12 @@ class Validators:
         self.validators = self.validators.reset_index(drop=True)
         self.validators.rename(columns = {'identityPubkey':'host_id'}, inplace = True)
 
+    def sort_staked(self, ascending=False):
+        self.validator_stakes = self.validator_stakes.sort_values(by='activatedStake', ascending=ascending)
+        self.validator_stakes = self.validator_stakes.reset_index(drop=True)
+        self.validator_stakes.rename(columns = {'identityPubkey':'host_id'}, inplace = True)
+
+
     def total_stake(self):
         return self.validators['activatedStake'].sum()
 
@@ -76,12 +82,19 @@ class Validators:
         return self.validators['host_id'].unique()
 
     def get_host_ids_staked_validators(self):
-        filtered_df = self.validators[self.validators['activatedStake'] >= 1]
+        # return self.validator_stakes['host_id'].unique()
+        filtered_df = self.validators[self.validators['activatedStake'] > 0]
         return filtered_df['host_id'].unique()
+
+    def trim_host_ids(self):
+        self.validators['host_id'] = self.validators['host_id'].str[:8]
+
+    def trim_host_ids_staked(self):
+        return self.validator_stakes['host_id'].str[:8]
 
     def get_host_ids_first_n_chars(self, trimmed_validators, n):
         if n < 1:
-            print("ERROR: to few characters requests. defaulting to 8 chars")
+            print("ERROR: too few characters requests. defaulting to 8 chars")
             n = 8
         return trimmed_validators['host_id'].str[:n].unique()
 
@@ -108,6 +121,10 @@ class Validators:
     def get_all(self):
         return self.validators
 
+    def get_all_staked(self):
+        return self.validator_stakes
+
+
     def get_validator_stake_map(self, n):
         # Truncate 'host_id' to first n characters and create a new column for it
         self.validators['truncated_host_id'] = self.validators['host_id'].apply(lambda x: x[:n])
@@ -120,6 +137,23 @@ class Validators:
 
         return stake_map
 
-    # def get_validator_stake_map(self, n):
-    #     trimmed_host_ids = self.get_host_ids_first_n_chars(self.validators, n)
-    #     return trimmed_host_ids.set_index('host_id')['activatedStake'].to_dict()
+    def get_rank_by_origin(self, origin):
+        self.sort_staked()
+        return self.validator_stakes.loc[self.validator_stakes['host_id'].str[:8] == origin].index[0]
+
+    def get_top_n_host_ids_by_stake(self, n):
+        self.sort_staked()
+        return self.validator_stakes.head(n)['host_id'].str[:8].tolist()
+
+    def get_all_staked_host_ids(self):
+        self.sort_staked()
+        return self.validator_stakes['host_id'].str[:8].to_list()
+
+    """
+    Returns all entries in the DataFrame that come after the given host_id.
+    """
+    def get_all_entries_after_host_id(self, host_id):
+        self.sort_staked()
+        if host_id in self.validator_stakes['host_id'].str[:8].values:
+            index = self.validator_stakes.index[self.validator_stakes['host_id'].str[:8] == host_id].tolist()[0]  # Get the index of the host_id
+            return self.validator_stakes['host_id'].str[:8].iloc[index + 1:].to_list()  # Return all rows after the index
