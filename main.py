@@ -8,14 +8,19 @@ from Crontab import Crontab
 from Coverage import Coverage
 from datetime import datetime
 from ReportMetrics import ReportMetrics
+from MessageDistribution import MessageDistribution
 
 CHARS_TO_KEEP = 8
 
 if __name__ == "__main__":
     influx = GossipQueryInflux()
 
+    if sys.argv[1] == "distribution":
+        message_distribution = MessageDistribution(influx)
+        message_distribution.run()
+
     if sys.argv[1] == "coverage":
-        coverage = Coverage()
+        coverage = Coverage(influx)
         if sys.argv[2] == "collect":
             coverage.run_data_collection()
         elif sys.argv[2] == "plot":
