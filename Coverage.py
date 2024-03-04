@@ -34,8 +34,8 @@ import numpy as np
 import os
 
 class Coverage:
-    def __init__(self):
-        self.influx = GossipQueryInflux()
+    def __init__(self, influx):
+        self.influx = influx
         self.coverage_stats_by_origin = {} # origin -> CoverageStatsByOrigin mapping
 
     def run_data_collection(self):
@@ -43,8 +43,8 @@ class Coverage:
         non_reporting_staked_host_ids = self.get_metric_non_reporting_nodes()
 
         # origins_to_run = self.validators.get_top_n_host_ids_by_stake(5)
-        # origins_to_run = self.validators.get_all_staked_host_ids()
-        origins_to_run = self.validators.get_all_entries_after_host_id('GafF2qoG')
+        origins_to_run = self.validators.get_all_staked_host_ids()
+        # origins_to_run = self.validators.get_all_entries_after_host_id('GafF2qoG')
         print(origins_to_run)
         # print(f"Running for {len(origins_to_run)} origins")
         # origins_to_run = ['GafF2qoG']

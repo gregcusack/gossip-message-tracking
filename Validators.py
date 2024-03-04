@@ -41,8 +41,8 @@ class Validators:
         # print(self.gossip_validators)
 
     def merge_stake_and_gossip(self):
-        # Merge the dataframes on 'identityPubkey', doing a left merge to keep all rows from 'gossip'
-        self.validators = pd.merge(self.gossip_validators, self.validator_stakes, on='identityPubkey', how='left')
+        # Merge the dataframes on 'identityPubkey'
+        self.validators = pd.merge(self.gossip_validators, self.validator_stakes, on='identityPubkey', how='outer')
 
         # Replace NaN values in 'activatedStake' with 0
         self.validators['activatedStake'] = self.validators['activatedStake'].fillna(0)
