@@ -36,31 +36,66 @@ class MessageDistribution:
     def run(self):
         self.get_nodes_per_bucket()
         # origins_to_run = ['CW9C7HBw', 'q9XWcZ7T', 'Fd7btgyS']#, 'UPSCQNqd', 'DWvDTSh3']
-        origins_to_run = self.validators.get_all_staked_host_ids()
-        for origin in origins_to_run:
+        # origins_to_run = self.validators.get_all_staked_host_ids()
+        origins_to_run = self.validators.get_all_entries_after_host_id('EUavyHnV')
+        # print(origins_to_run)
+        # print(self.validators.get_validator_stake_map(8))
+        for count, origin in enumerate(origins_to_run):
+            print(count)
+            # if origin not in self.stake_map:
+            #     print(f"Warning: origin: {origin} not in stake map. not counting...")
+            #     continue
             origin_bucket = StakeBucket.get_stake_bucket(int(self.stake_map[origin]))
             if origin_bucket not in self.raw_messages_received_by_bucket:
                 self.raw_messages_received_by_bucket[origin_bucket] = [0.0 for _ in range(NUM_PUSH_ACTIVE_SET_ENTRIES)]
             self.calculate_message_distribution(origin, origin_bucket)
 
+            if count + 1 < len(origins_to_run):
+                # if origins_to_run[count + 1] not in self.stake_map:
+                #     print(f"Warning: origin: {origin} not in stake map. not counting...")
+                #     continue
+                next_bucket = StakeBucket.get_stake_bucket(int(self.stake_map[origins_to_run[count + 1]]))
+                # if next bucket is not same as this bucket, we are done with validators for this stake bucket
+                # so lets plot the origin_bucket
+                if next_bucket != origin_bucket:
+                    self.normalize(origin_bucket)
+                    self.plot(origin_bucket)
+            elif count + 1 == len(origins_to_run):
+                print("at end")
+                self.normalize(origin_bucket)
+                self.plot(origin_bucket)
+
+
         print("############# END DATA ##############")
         print(f"nodes per bucket: {self.nodes_per_bucket}")
         print(f"messages created per bucket: {self.messages_created_per_bucket}")
-        for origin_bucket, buckets in self.raw_messages_received_by_bucket.items():
-            print(f"origin bucket: {origin_bucket}, msg_received per bucket: {buckets}")
+        # for origin_bucket, buckets in self.raw_messages_received_by_bucket.items():
+        #     print(f"origin bucket: {origin_bucket}, msg_received per bucket: {buckets}")
 
-            # Normalize by Number of Nodes in Each Bucket
-            normalized_by_nodes = [msg / nodes if nodes > 0 else 0 for msg, nodes in zip(self.raw_messages_received_by_bucket[origin_bucket], self.nodes_per_bucket)]
-            # print(f"normalized by nodes: {normalized_by_nodes}")
+        #     # Normalize by Number of Nodes in Each Bucket
+        #     normalized_by_nodes = [msg / nodes if nodes > 0 else 0 for msg, nodes in zip(self.raw_messages_received_by_bucket[origin_bucket], self.nodes_per_bucket)]
+        #     # print(f"normalized by nodes: {normalized_by_nodes}")
 
-            # Normalize by Number of Messages Created by Origin Bucket
-            total_messages_from_origin = self.messages_created_per_bucket[origin_bucket]
-            normalized_distribution = [count / total_messages_from_origin for count in normalized_by_nodes]
-            print(f"norm distribution: {normalized_distribution}")
-            self.normalized_distribution_by_bucket[origin_bucket] = normalized_distribution
+        #     # Normalize by Number of Messages Created by Origin Bucket
+        #     total_messages_from_origin = self.messages_created_per_bucket[origin_bucket]
+        #     normalized_distribution = [count / total_messages_from_origin for count in normalized_by_nodes]
+        #     print(f"norm distribution: {normalized_distribution}")
+        #     self.normalized_distribution_by_bucket[origin_bucket] = normalized_distribution
 
-        for origin_bucket in self.normalized_distribution_by_bucket:
-            self.plot(origin_bucket)
+        #     self.plot(origin_bucket)
+
+    def normalize(self, origin_bucket):
+        print(f"origin bucket: {origin_bucket}, msg_received per bucket: {self.raw_messages_received_by_bucket[origin_bucket]}")
+
+        # Normalize by Number of Nodes in Each Bucket
+        normalized_by_nodes = [msg / nodes if nodes > 0 else 0 for msg, nodes in zip(self.raw_messages_received_by_bucket[origin_bucket], self.nodes_per_bucket)]
+        # print(f"normalized by nodes: {normalized_by_nodes}")
+
+        # Normalize by Number of Messages Created by Origin Bucket
+        total_messages_from_origin = self.messages_created_per_bucket[origin_bucket]
+        normalized_distribution = [count / total_messages_from_origin for count in normalized_by_nodes]
+        print(f"norm distribution: {normalized_distribution}")
+        self.normalized_distribution_by_bucket[origin_bucket] = normalized_distribution
 
     def plot(self, origin_bucket):
         buckets = list(range(NUM_PUSH_ACTIVE_SET_ENTRIES))
