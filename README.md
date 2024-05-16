@@ -17,3 +17,14 @@ p=*********************
 port=8086
 host=internal-metrics.solana.com
 ```
+
+
+### Fraction Duplicate Push
+```
+python main.py dup-push <optional: top_n_validators_by_stake>
+```
+
+Will plot fraction of duplicate push messages seen over last 14 days
+```
+num_duplicate_push / (all_push_success + all_push_fail)
+```
