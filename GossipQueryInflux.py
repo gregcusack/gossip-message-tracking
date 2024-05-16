@@ -67,7 +67,7 @@ class GossipQueryInflux():
             mean(num_duplicate_push_messages) \
             as mean_num_duplicate_push_messages \
             FROM "' + self.database + '"."autogen"."cluster_info_stats4" \
-            WHERE time > now() - 1d \
+            WHERE time > now() - 7d \
             GROUP BY time(1h)'
         return self.execute_query(query)
 
@@ -79,7 +79,7 @@ class GossipQueryInflux():
             mean("all-push") \
             as mean_all_push \
             FROM "' + self.database + '"."autogen"."cluster_info_crds_stats" \
-            WHERE time > now() - 1d \
+            WHERE time > now() - 7d \
             GROUP BY time(1h)'
         return self.execute_query(query)
 
@@ -91,7 +91,7 @@ class GossipQueryInflux():
             mean("all-push") \
             as mean_all_push \
             FROM "' + self.database + '"."autogen"."cluster_info_crds_stats_fails" \
-            WHERE time > now() - 1d \
+            WHERE time > now() - 7d \
             GROUP BY time(1h)'
         return self.execute_query(query)
 

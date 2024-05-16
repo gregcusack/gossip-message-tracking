@@ -53,13 +53,14 @@ class DuplicatePush:
 
     def plot(self, frac_df):
         # Plot the ratio as a function of time
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(60, 20))
         plt.plot(frac_df.index, frac_df['fraction_dup_push'], marker='o', linestyle='-')
         plt.xlabel('Time')
         plt.ylabel('Fraction of Duplicate Push Messages')
         plt.title('Fraction of Duplicate Push Messages over all received push messages')
         plt.grid(True)
         plt.xticks(rotation=75)
+        plt.margins(x=0.005, tight=True)
         plt.tight_layout()
         # plt.show()
         plt.savefig(f'plots/fraction_duplicate_push.png')
