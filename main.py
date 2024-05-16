@@ -18,7 +18,10 @@ if __name__ == "__main__":
 
     if sys.argv[1] == "dup-push":
         dp = DuplicatePush(influx)
-        dp.run()
+        top_n_stake = None
+        if len(sys.argv) > 2:
+            top_n_stake = int(sys.argv[2])
+        dp.run_fraction_dup(top_n_stake)
 
     if sys.argv[1] == "distribution":
         message_distribution = MessageDistribution(influx)

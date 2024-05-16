@@ -108,7 +108,7 @@ class Validators:
     Assumes self.validators is sorted already (descending)
     n: number of validators to return
     """
-    def get_top_n_highest_staked_validators(self, n):
+    def get_top_n_highest_staked_validators(self, n: int):
         return self.validators.head(n)
 
     def get_validators_in_range(self, start, end):

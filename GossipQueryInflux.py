@@ -59,41 +59,89 @@ class GossipQueryInflux():
 
         return self.execute_query(query)
 
-    """
-    Query num_duplicate_push_messages over last day. Aggregate all nodes
-    """
-    def query_num_duplicate_push_messages(self):
-        query = 'select \
-            mean(num_duplicate_push_messages) \
-            as mean_num_duplicate_push_messages \
-            FROM "' + self.database + '"."autogen"."cluster_info_stats4" \
-            WHERE time > now() - 7d \
-            GROUP BY time(1h)'
-        return self.execute_query(query)
+    def query_num_duplicate_push_messages(self, host_ids=None):
+        """
+        Query num_duplicate_push_messages over the last 14 days. If host_ids are provided, filter by them.
 
-    """
-    Query all-push success from cluster_info_crds_stats over last day. Aggregate all nodes
-    """
-    def query_all_push_success(self):
-        query = 'select \
-            mean("all-push") \
-            as mean_all_push \
-            FROM "' + self.database + '"."autogen"."cluster_info_crds_stats" \
-            WHERE time > now() - 7d \
-            GROUP BY time(1h)'
-        return self.execute_query(query)
+        :param host_ids: Optional list of host_ids to filter the data by.
+        :return: Query result
+        """
+        base_query = '''
+        SELECT
+            mean(num_duplicate_push_messages) AS mean_num_duplicate_push_messages
+        FROM
+            "{}"."autogen"."cluster_info_stats4"
+        WHERE
+            time > now() - 14d
+        '''.format(self.database)
 
-    """
-    Query all-push fails from cluster_info_crds_stats_fails over last day. Aggregate all nodes
-    """
-    def query_all_push_fail(self):
-        query = 'select \
-            mean("all-push") \
-            as mean_all_push \
-            FROM "' + self.database + '"."autogen"."cluster_info_crds_stats_fails" \
-            WHERE time > now() - 7d \
-            GROUP BY time(1h)'
-        return self.execute_query(query)
+        if host_ids:
+            host_ids_condition = ' OR '.join([f''' "host_id"='{host_id}' ''' for host_id in host_ids])
+            base_query += ' AND ({})'.format(host_ids_condition)
+
+        base_query += ' GROUP BY time(1h)'
+        
+        return self.execute_query(base_query)
+
+    def query_all_push_success(self, host_ids=None):
+        """
+        Query all-push success from cluster_info_crds_stats over the last 7 days. If host_ids are provided, filter by them.
+
+        :param host_ids: Optional list of host_ids to filter the data by.
+        :return: Query result
+        """
+        base_query = '''
+        SELECT
+            mean("all-push") AS mean_all_push
+        FROM
+            "{}"."autogen"."cluster_info_crds_stats"
+        WHERE
+            time > now() - 14d
+        '''.format(self.database)
+
+        if host_ids:
+            host_ids_condition = ' OR '.join([f''' "host_id"='{host_id}' ''' for host_id in host_ids])
+            base_query += ' AND ({})'.format(host_ids_condition)
+
+        base_query += ' GROUP BY time(1h)'
+        
+        return self.execute_query(base_query)
+
+    # """
+    # Query all-push fails from cluster_info_crds_stats_fails over last day. Aggregate all nodes
+    # """
+    # def query_all_push_fail(self):
+    #     query = 'select \
+    #         mean("all-push") \
+    #         as mean_all_push \
+    #         FROM "' + self.database + '"."autogen"."cluster_info_crds_stats_fails" \
+    #         WHERE time > now() - 7d \
+    #         GROUP BY time(1h)'
+    #     return self.execute_query(query)
+
+    def query_all_push_fail(self, host_ids=None):
+        """
+        Query all-push fails from cluster_info_crds_stats_fails over the last 14 days. If host_ids are provided, filter by them.
+
+        :param host_ids: Optional list of host_ids to filter the data by.
+        :return: Query result
+        """
+        base_query = '''
+        SELECT
+            mean("all-push") AS mean_all_push
+        FROM
+            "{}"."autogen"."cluster_info_crds_stats_fails"
+        WHERE
+            time > now() - 14d
+        '''.format(self.database)
+
+        if host_ids:
+            host_ids_condition = ' OR '.join([f''' "host_id"='{host_id}' ''' for host_id in host_ids])
+            base_query += ' AND ({})'.format(host_ids_condition)
+
+        base_query += ' GROUP BY time(1h)'
+        
+        return self.execute_query(base_query)
 
     """
     This gets the intial set of nodes an origin sends its messages to
