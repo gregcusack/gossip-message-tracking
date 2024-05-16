@@ -60,6 +60,42 @@ class GossipQueryInflux():
         return self.execute_query(query)
 
     """
+    Query num_duplicate_push_messages over last day. Aggregate all nodes
+    """
+    def query_num_duplicate_push_messages(self):
+        query = 'select \
+            mean(num_duplicate_push_messages) \
+            as mean_num_duplicate_push_messages \
+            FROM "' + self.database + '"."autogen"."cluster_info_stats4" \
+            WHERE time > now() - 1d \
+            GROUP BY time(1h)'
+        return self.execute_query(query)
+
+    """
+    Query all-push success from cluster_info_crds_stats over last day. Aggregate all nodes
+    """
+    def query_all_push_success(self):
+        query = 'select \
+            mean("all-push") \
+            as mean_all_push \
+            FROM "' + self.database + '"."autogen"."cluster_info_crds_stats" \
+            WHERE time > now() - 1d \
+            GROUP BY time(1h)'
+        return self.execute_query(query)
+
+    """
+    Query all-push fails from cluster_info_crds_stats_fails over last day. Aggregate all nodes
+    """
+    def query_all_push_fail(self):
+        query = 'select \
+            mean("all-push") \
+            as mean_all_push \
+            FROM "' + self.database + '"."autogen"."cluster_info_crds_stats_fails" \
+            WHERE time > now() - 1d \
+            GROUP BY time(1h)'
+        return self.execute_query(query)
+
+    """
     This gets the intial set of nodes an origin sends its messages to
     """
     def get_initial_egress_messages_by_signature(self, signature):
