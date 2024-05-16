@@ -9,11 +9,19 @@ from Coverage import Coverage
 from datetime import datetime
 from ReportMetrics import ReportMetrics
 from MessageDistribution import MessageDistribution
+from DuplicatePush import DuplicatePush
 
 CHARS_TO_KEEP = 8
 
 if __name__ == "__main__":
     influx = GossipQueryInflux()
+
+    if sys.argv[1] == "dup-push":
+        dp = DuplicatePush(influx)
+        top_n_stake = None
+        if len(sys.argv) > 2:
+            top_n_stake = int(sys.argv[2])
+        dp.run_fraction_dup(top_n_stake)
 
     if sys.argv[1] == "distribution":
         message_distribution = MessageDistribution(influx)
