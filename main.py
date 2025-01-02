@@ -16,6 +16,15 @@ CHARS_TO_KEEP = 8
 if __name__ == "__main__":
     influx = GossipQueryInflux()
 
+    if sys.argv[1] == "get-unstaked":
+        # validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
+        validators = Validators('data/mb-validator-stakes.json', 'data/mb-validator-gossip.json')
+        validators.load_gossip()
+        validators.load_stakes()
+        validators.get_all_unstaked()
+        sys.exit(0)
+        # validators.sort(ascending=False)
+
     if sys.argv[1] == "dup-push":
         dp = DuplicatePush(influx)
         top_n_stake = None
@@ -32,7 +41,7 @@ if __name__ == "__main__":
         if sys.argv[2] == "collect":
             coverage.run_data_collection()
         elif sys.argv[2] == "plot":
-            coverage.plot_all('coverage-data-12_21.csv')
+            coverage.plot_all('mb-coverage.csv')
 
     ### Run crontab loop over past 14 days
     elif sys.argv[1] == "crontab-loop":
@@ -83,7 +92,8 @@ if __name__ == "__main__":
         print(f"Crontab completed at: {datetime.today().strftime('%m_%d_%Y_%H_%M_%S')}")
         # sys.exit(0)
 
-    validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
+    # validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
+    validators = Validators('data/mb-validator-stakes.json', 'data/mb-validator-gossip.json')
     validators.load_gossip()
     validators.load_stakes()
     validators.merge_stake_and_gossip()
@@ -110,15 +120,16 @@ if __name__ == "__main__":
             push_results = influx.query_all_push()
         host_set = influx.get_host_id_tags_from_query(push_results)
         non_reporting_host_ids = ReportMetrics.identify_non_reporting_staked_hosts(validators.get_host_ids_staked_validators(), host_set)
-
+        print(f"non reporting host ids: {len(non_reporting_host_ids)}")
         trimmed_validators = validators.get_validators_by_cummulative_stake_percentage(percentage)
         print(f"Number of validators that make up >= {percentage}% stake: {str(len(trimmed_validators))}")
 
         result = influx.get_data_by_signature(hash)
         data = influx.transform_gossip_crds_sample_results(result)
 
+        node_to_color_list = validators.get_host_ids_first_n_chars(trimmed_validators, CHARS_TO_KEEP).tolist()
         graph = Graph()
-        graph.build(data, color=True, nodes_to_color=validators.get_host_ids_first_n_chars(trimmed_validators, CHARS_TO_KEEP).tolist())
+        graph.build(data, color=True, nodes_to_color=node_to_color_list)
         graph.cycle_exists()
         graph.draw(non_reporting_hosts=non_reporting_host_ids)
         graph.configure_legend(hash, percentage)

@@ -48,6 +48,20 @@ class Validators:
         self.validators['activatedStake'] = self.validators['activatedStake'].fillna(0)
 
         # print(self.validators)
+    
+    def get_all_unstaked(self):
+        stakes_pubkeys = set(self.validator_stakes['identityPubkey'])
+
+        # Find rows in load_gossip where 'identityPubkey' is not in load_stakes
+        missing_pubkeys_df = self.gossip_validators[~self.gossip_validators['identityPubkey'].isin(stakes_pubkeys)]
+
+        # If you just want the list of missing 'identityPubkey's
+        missing_pubkeys = missing_pubkeys_df['identityPubkey'].unique()
+
+        # Output the result
+        print("Identity Pubkeys in load_gossip not in load_stakes:")
+        for pubkey in missing_pubkeys:
+            print(pubkey)
 
     def sort(self, ascending):
         self.validators = self.validators.sort_values(by='activatedStake', ascending=ascending)

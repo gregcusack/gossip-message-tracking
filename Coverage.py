@@ -140,7 +140,7 @@ class Coverage:
                         f"overall_coverage: {node_set.length_all()/len(self.stake_map)}")
 
     def get_validators(self):
-        self.validators = Validators('data/validator-stakes.json', 'data/validator-gossip.json')
+        self.validators = Validators('data/mb-validator-stakes.json', 'data/mb-validator-gossip.json')
         self.validators.load_gossip()
         self.validators.load_stakes()
         self.validators.merge_stake_and_gossip()
@@ -294,7 +294,7 @@ class Coverage:
         for col in df.select_dtypes(include=['float']).columns:
             df[col] = df[col].apply(lambda x: f"{x:.3f}")
 
-        file_path = "coverage-v2.csv"
+        file_path = "mb-coverage.csv"
 
         # Check if the file exists to determine if we need to write headers
         file_exists = os.path.isfile(file_path)

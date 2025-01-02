@@ -18,7 +18,7 @@ class GossipQueryInflux():
         host = os.getenv("host")
         port = os.getenv("port")
 
-        self.client = InfluxDBClient(database=self.database, username=username, password=password, host=host, ssl=True, verify_ssl=True, port=port, timeout=300, retries=0)
+        self.client = InfluxDBClient(database=self.database, username=username, password=password, host=host, port=port, timeout=300, retries=0)
 
     def execute_query(self, query):
         return self.client.query(query)#, chunked=True, chunk_size=5000)
@@ -219,7 +219,7 @@ class GossipQueryInflux():
             "origin", \
             "host_id" \
             FROM "' + self.database + '"."autogen"."gossip_crds_sample" \
-            WHERE time > now() - 14d \
+            WHERE time > now() - 16d \
             and signature=\'' + signature + '\''
         return self.execute_query(query)
 

@@ -8,7 +8,7 @@ class DuplicatePush:
         self.influx = influx
 
     def get_validators(self) -> Validators:
-        validators = Validators('data/tds-validator-stakes.json', 'data/tds-validator-gossip.json')
+        validators = Validators('data/mb-validator-stakes.json', 'data/mb-validator-gossip.json')
         validators.load_gossip()
         validators.load_stakes()
         validators.merge_stake_and_gossip()
@@ -37,7 +37,9 @@ class DuplicatePush:
         top_host_ids_by_stake = None
         if top_n_stake:
             top_host_ids_by_stake = self.run_fraction_dup_top_n_stake(top_n_stake)
+            print(f"top host ids by stake: {top_host_ids_by_stake}")
         duplicate_push_counts = self.run_dup_push_count(top_host_ids_by_stake)
+        print(f"duplicate_push_counts: {duplicate_push_counts}")
         df_dup = self.process_results(duplicate_push_counts)
         if df_dup.empty:
             print("num_duplicate_push_message df is empty")
